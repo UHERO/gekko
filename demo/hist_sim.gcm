@@ -1,0 +1,142 @@
+
+// THE CODE BELOW IS FROM THE GEKKO DEMO EXAMPLES
+
+clear global;
+OPTION model cache = no;
+RESTART; 
+MODE sim;
+TIME 2004 2016;
+option model infofile = yes;
+MODEL gekko3.frm;
+sign;
+READ gekko.gbk;
+PRT <2004 2016> y, c, x, g;
+#vars =  y, c, x, g;
+LIST ?;
+PRT {#vars};
+PRT {'*'};
+MULPRT {#vars};
+SIM;
+MULPRT {#vars};
+PRT @y, y;
+MULPRT <v> y;
+PLOT @y, y;
+SHEET @y, y;
+PRT <p> {#vars};
+PLOT <p> {#vars};
+PRT <rp> {#vars};
+PRT <r> {#vars};
+WRITE simple;
+CREATE g2;
+g2 <2002 2016> = g;
+pch(g2) <2003 2016> = pch(c) - pch(y) + 2;
+PRT <2003 2016 p> c, y, g2;
+PRT <r> c/y;
+DISP y;
+DECOMP y;
+
+
+RESTART;
+MODE sim;
+TIME 2017 2040;
+MODEL gekko;
+READ gekko;
+#vars =  y, c, x, g;
+PRT <2015 2040> {#vars};
+SIM;
+g %= 0;
+SIM;
+PRT {#vars};
+MULPRT <v> y;
+CLONE;
+MULPRT <v> y;
+g += 100;
+SIM;
+TIME 2016 2040;
+PLOT {#vars};
+PLOT <m> {#vars};
+PRT <m> {#vars};
+SHEET <m> {#vars};
+SHEET <m> y 'GDP', c 'Priv. cons.', x 'Net exp.', g 'Gov. cons.' file = simple;
+SHEET <m> c/y, x/y, g/y;
+DECOMP y;
+ 
+
+RESTART;
+MODE sim;
+TIME 2017 2040;
+MODEL gekko;
+READ gekko;
+g %= 0;
+SIM;
+CLONE;
+DISP x;
+jdx <2017 2017> += 100;
+SIM;
+PLOT <2016 2040 m> y, c, x, g;
+
+
+
+RESTART;
+MODE sim;
+TIME 2017 2040;
+MODEL gekko;
+READ gekko;
+g %= 0;
+SIM;
+CLONE;
+EXO y;
+ENDO g;
+y <2017 2023> += 250;
+SIM<fix>;
+PLOT <2016 2040 m> y, c, x, g;
+ 
+// -------------------------------
+ 
+RESTART;
+MODE sim;
+TIME 2017 2040;
+option model infofile = no;
+MODEL gekko;
+sign;
+READ gekko;
+g %= 0;
+SIM;
+CLONE;
+Dc = 1;
+Zc += 100;
+SIM;
+PLOT <2016 2040 m> y, c, x, g;
+
+
+RESTART;
+MODE sim;
+TIME 2017 2040;
+MODEL gekko;
+READ gekko;
+#vars =  y, c, x, g;
+g %= 0;
+SIM;
+CLONE;
+g <2025 2040> += 100;
+SIM;
+PLOT <m> {#vars};
+
+RESTART;
+OPTION solve forward terminal = exo;  //changed
+MODE sim;
+TIME 2017 2040;
+MODEL gekko2;  //changed
+READ gekko;
+#vars =  y, c, x, g;
+g %= 0;
+y[2041] = 500;  //changed
+SIM;
+CLONE;
+g <2025 2040> += 100;
+SIM;
+PLOT <m ymax = 300> {#vars};
+
+index global:*;
+INDEX <showbank=all showfreq=all> ***;
+prt {Global:#all};
