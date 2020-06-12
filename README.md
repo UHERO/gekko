@@ -12,6 +12,6 @@ AREMOS alternative
   * `DATA`: imported, exported data and databanks; 
   * `FIGURES`: pdf figures produced by the command files.
   
-  ## Status
+## Status
   
 The command file for the US forecast (USSOL) is essentially complete: it showcases all important steps of the data workflow, including data import/export, data modifications (addfactoring, working with different frequencies, etc.), and generation of figures. The codebase does not illustrate any simultaneous equation modeling yet.
