@@ -1,23 +1,10 @@
-// *************************
-// FORECAST FOR THE US ECONOMY
-// AUTHOR: PETER FULEKY
-// DATE: 2020-06-10
-// NOTES:
-// ALL GROWTH RATE ENTRIES ARE IN ANNUALIZED TERMS. 
-// THEY ARE HANDLED BY FUNCTIONS IN LIB.GCM
-// USER INPUT IS REQUIRED IN SECTIONS DELIMITED BY // -------------------------
-// *************************
-
-
-TELL '*************************';
-TELL ' SETUP                   ';
-TELL '*************************';
+// EXPERIMENTING WITH USSOL
+// SEE ALSO THE BUG LIST IN A SEPARATE FILE
 
 // SET FONT SIZE IN GEKKO
 OPTION INTERFACE ZOOM = 120;
-// CLOSE BANKS AND CLEAR MEMORY AND SCREEN
+// CLOSE BANKS AND CLEAR MEMORY
 RESTART;
-CLS;
 // SET WORKING DIRECTORY, AND SUBFOLDERS 
 // (IF YOU USE SINGLE QUOTES, HAVE TO PROVIDE ABSOLUTE PATH)
 %WORK_DIR = 'I:\FORECAST\GEKKO';
@@ -36,10 +23,10 @@ RUN LIB.GCM;
 %CURR_YR = CURRENTYEAR();
 TIME %BNK_START %BNK_END;
 
-// LOAD RELEVANT DATA (REPLACE @ WITH _ IN TSD FILES)
+// LOAD RELEVANT DATA (NEED TO REPLACE @ WITH _ IN TSD FILES)
 #TSD_LIST = ('US_Q', 'US_A');
-FOR STRING %TSD_I = #TSD_LIST;
-IMPORT <ALL TSD> '\DATA\{%TSD_I}.TSD';
+FOR STRING %I = #TSD_LIST;
+IMPORT <ALL TSD> '\DATA\{%I}.TSD';
 END;
 
 // MAKE COPIES OF LOADED SERIES FOR STORING FORECASTS
@@ -47,32 +34,27 @@ END;
 COPY *!A TO *_SOLA!A;
 COPY *!Q TO *_SOLQ!Q;
 INDEX *:*!* TO #EXT_LIST;
-// DISP {#EXT_LIST};
+DISP {#EXT_LIST};
 WRITE {#EXT_LIST} FILE=EXT_DAT;
 
-
-
-TELL '*************************';
-TELL ' POPULATION              ';
-TELL '*************************';
-
-OPTION FREQ=A;
+// *************************
+//  POPULATION
+// *************************
 
 // USE POPULATION ESTIMATES AND PROJECTIONS FROM CENSUS
 // HTTPS://WWW2.CENSUS.GOV/PROGRAMS-SURVEYS/POPPROJ/DATASETS/2017/2017-POPPROJ/NP2017_D1.CSV
 // HTTPS://WWW2.CENSUS.GOV/PROGRAMS-SURVEYS/POPEST/DATASETS/2010-2017/NATIONAL/ASRH/NC-EST2017-AGESEX-RES.CSV
-
-// -------------------------
 // FILL SERIES WITH CENSUS PROJECTIONS, AND FILL IN RECENT (5 YEAR) HISTORY SO THAT GROWTH RATES AND SPLINES CAN BE CALCULATED
+OPTION FREQ=A;
 NCEN_US_SOLA <2016 2060> = 323127513,325511184,327891911,330268840,332639102,334998398,337341954,339665118,341963408,344234377,346481182,348695115,350872007,353008224,355100730,357147329,359146709,361098559,363003410,364862145,366676312,368447857,370178704,371871238,373527973,375151805,376746115,378314343,379860859,381390297,382907447,384415207,385917628,387418788,388922201,390430803,391947055,393472783,395009307,396557404,398117875,399690963,401276590,402874337,404483055; 			
-// -------------------------
-
 NCEN_US_SOLA /= 1000; 	// SCALE BY 1000
 
 // INTERPOLATE ANNUAL DATA TO QUARTERLY (FUNCTION DEFINED IN LIB.GCM)
 NCEN_US_SOLQ!Q = INTERP_QA_LIN(NCEN_US_SOLA);
-PRT <%CURR_YR-2 %CURR_YR+3> NCEN_US_SOLQ!Q, NCEN_US_SOLA;
+COLLAPSE NCEN_US_SOLA1!A = NCEN_US_SOLQ!Q AVG; // FOR STOCK TYPE VARIABLES AVG, FOR FLOW TYPE VARIABLES TOTAL
+PRT <%CURR_YR-2 %CURR_YR+3> NCEN_US_SOLQ!Q, NCEN_US_SOLA1!A, NCEN_US_SOLA;
 
+// SWITCH TO QUARTERLY FREQUENCY
 OPTION FREQ=Q;
 
 // ADDFACTOR FOR LEVEL (TRANSITION FROM HISTORY TO FORECAST)
@@ -84,13 +66,10 @@ N_US_SOLQ <%DAT_END %BNK_END> = NCEN_US_SOLQ + %N_US_SOLQ_ADDLEV;
 // COMPARE GROWTH RATES IN HISTORY AND FORECAST
 PRT <%CURR_YR-2 %CURR_YR+3> N_US, N_US_SOLQ;
 
-// -------------------------
 // ADDFACTOR FOR GROWTH
 N_US_SOLQ_ADDGRO = 0;
 N_US_SOLQ_ADDGRO <%DAT_END+1 %DAT_END+80> = M();
 N_US_SOLQ_ADDGRO <%DAT_END+1 %DAT_END+4> = -0.25;
-// -------------------------
-
 SMOOTH N_US_SOLQ_ADDGRO = N_US_SOLQ_ADDGRO LINEAR;
 
 // EXTEND HISTORY USING GROWTH RATE (FUNCTIONS DEFINED IN LIB.GCM)
@@ -107,61 +86,36 @@ COLLAPSE N_US_SOLA!A = N_US_SOLQ!Q AVG; // FOR STOCK TYPE VARIABLES AVG, FOR FLO
 PRT <%CURR_YR-2 %CURR_YR+3> N_US_SOLA!A, N_US_SOLQ!Q, N_US!A, N_US!Q;
 
 // PRODUCE A BASIC PLOT OF RESULTS (ATTRIBUTES IN '' ARE CASE SENSITIVE!)
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> N_US<DASHTYPE='1' LINECOLOR='blue'>, N_US_SOLQ<DASHTYPE='2' LINECOLOR='blue'>, N_US!A<DASHTYPE='1' LINECOLOR='red'>, N_US_SOLA!A<DASHTYPE='2' LINECOLOR='red'> FILE='{%WORK_DIR}\FIGURES\N_US_FIG.pdf';
-
-PLOT <%CURR_YR-10 %CURR_YR+15> N_US!Q<TYPE=LINES DASHTYPE='1'>, N_US_SOLQ!Q<TYPE=LINES DASHTYPE='2'>, PCHA(N_US!Q)<TYPE=BOXES Y2>, PCHA(N_US_SOLQ!Q)<TYPE=BOXES Y2> FILE='{%WORK_DIR}\FIGURES\N_US_GR_FIG.pdf';
+PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> N_US<DASHTYPE='1' LINECOLOR='blue'>, N_US_SOLQ<DASHTYPE='2' LINECOLOR='red'> FILE='{%WORK_DIR}\FIGURES\N_US_FIG.pdf';
 
 // DELETE TEMPORARY SERIES
-INDEX *:*N*!*;
-DELETE %N_US_SOLQ_ADDLEV, N_US_SOLQ_GRO, N_US_SOLQ_ADDGRO;
+INDEX *:*!*;
+DELETE NCEN_US_SOLA1!A, %N_US_SOLQ_ADDLEV, N_US_SOLQ_GRO, N_US_SOLQ_ADDGRO;
 
-
-
-TELL '*************************';
-TELL ' 16+ POPULATION          ';
-TELL '*************************';
-
-// THIS SECTION CONTAINS TWO STAGES: 
-// 1. RECONCILE HISTORY AND PROJECTION OF 16+ POPULATION, 
-// 2. EXTEND HISTORY OF NON-INSTITUTIONAL 16+ POPULATION WITH THE RESULT FROM 1.
-
-
-// STAGE 1.
-
+// *************************
+//  16+ POPULATION
+// *************************
 
 OPTION FREQ=A;	
-
-// -------------------------
 // 	GET THE 16+ US POPULATION PROJECTIONS FROM CENSUS:
 // 	HTTPS://WWW2.CENSUS.GOV/PROGRAMS-SURVEYS/POPPROJ/DATASETS/2017/2017-POPPROJ/NP2017_D1.CSV
 N16_US_SOLA <2016 2060> = 257955453,260310555,262550200,264792059,267049286,269282525,271511472,273756663,275962588,278018690,280054931,282067427,284005393,285905941,287783531,289630116,291415785,293243240,295043303,296814180,298553605,300259159,301929123,303562429,305158790,306719083,308245025,309738427,311201577,312637235,314048806,315438493,316810301,318168975,319519290,320865864,322213035,323564510,324923129,326291095,327670395,329062335,330468057,331888253,333322800;
 
-// 	ADD/UPDATE RECENT HISTORY (NEED FOR SPLINES AND GROWTH CALC.):
+// 	ADD/UPDATE RECENT HISTORY (NEED FOR SPLINES):
 // 	HTTPS://WWW2.CENSUS.GOV/PROGRAMS-SURVEYS/POPEST/DATASETS/2010-2017/NATIONAL/ASRH/NC-EST2017-AGESEX-RES.CSV
 N16_US <2010 2017> = 243906873,246315892,248735191,251016036,253402603,255788180,258228041,260583066;
 
 // ADDFACTOR PROJECTION BY AVERAGE DIFFERENCE DURING THE OVERLAP (2016-17). 
 // THE DIFFERENCE IS (272,588+272,511)/2 = 272,550
 N16_US_SOLA += 272550;
-// FILL IN RECENT HISTORY
-N16_US_SOLA <2010 2017> = N16_US; 
-// -------------------------
+N16_US_SOLA <2010 2017> = N16_US; // FILL IN RECENT HISTORY
+N16_US_SOLA = N16_US_SOLA/1000; // SCALE BY 1000
 
-// SCALE BY 1000
-N16_US_SOLA = N16_US_SOLA/1000; 
-
-
-// STAGE 2.
-
-
-// -------------------------
 // THE DENOMINATOR FOR THE LFP CALCULATION SHOULD BE NON-INSTITUTIONAL 16+ (HTTP://WWW.BLS.GOV/WEB/EMPSIT/CPSEEA01.HTM)
-N16NI_US <2010 2018> = 237829,239618,243284,245679,247947,250801,253538,255079,257791;	
 // THE DIFFERENCE BETWEEN 16+ AND NON-INSTITUTIONAL 16+ IS ABOUT 5.5 MILLION (CHECK THIS)
-PRT <%CURR_YR-2 %CURR_YR+3> PCH(N16_US_SOLA), PCH(N16NI_US), N16_US_SOLA, N16NI_US, N16_US_SOLA-N16NI_US; 
-// -------------------------
-
-// INITIALIZE THE N16NI_US_SOLA FORECAST
+// VARIABLE FOR ACTUAL NON-INSTITUTIONAL 16+ HISTORY
+N16NI_US <2010 2018> = 237829,239618,243284,245679,247947,250801,253538,255079,257791;	
+PRINT <%CURR_YR-2 %CURR_YR+3> PCH(N16_US_SOLA), PCH(N16NI_US), N16_US_SOLA, N16NI_US, N16_US_SOLA-N16NI_US; // CHECK THE DIFFERENCE, SHOULD BE CLOSE TO 5.5 MILLION 
 N16NI_US_SOLA = N16NI_US;
 
 // ADDFACTOR FOR LEVEL (TRANSITION FROM HISTORY TO FORECAST)
@@ -173,13 +127,10 @@ N16NI_US_SOLA <%DAT_END %BNK_END> = N16_US_SOLA + %N16_US_SOLA_ADDLEV;
 // COMPARE GROWTH RATES IN HISTORY AND FORECAST
 PRT <%CURR_YR-2 %CURR_YR+3> N16NI_US, N16NI_US_SOLA;
 
-// -------------------------
 // ADDFACTOR FOR GROWTH
 N16NI_US_SOLA_ADDGRO = 0;
 N16NI_US_SOLA_ADDGRO <%DAT_END+1 %DAT_END+20> = M();
 N16NI_US_SOLA_ADDGRO <%DAT_END+1 %DAT_END+1> = 0;
-// -------------------------
-
 SMOOTH N16NI_US_SOLA_ADDGRO = N16NI_US_SOLA_ADDGRO LINEAR;
 
 // EXTEND HISTORY USING GROWTH RATE
@@ -192,29 +143,26 @@ PRT %N16_US_SOLA_ADDLEV;
 
 // INTERPOLATE ANNUAL DATA TO QUARTERLY
 N16NI_US_SOLQ!Q = INTERP_QA_LIN(N16NI_US_SOLA);
-PRT <%CURR_YR-2 %CURR_YR+3> N16NI_US_SOLQ!Q, N16NI_US_SOLA, N16_US;
+COLLAPSE N16NI_US_SOLA1!A = N16NI_US_SOLQ!Q AVG; // FOR STOCK TYPE VARIABLES AVG, FOR FLOW TYPE VARIABLES TOTAL
+PRT <%CURR_YR-2 %CURR_YR+3> N16NI_US_SOLQ!Q, N16NI_US_SOLA1!A, N16NI_US_SOLA, N16_US;
 
 // PRODUCE A BASIC PLOT OF RESULTS (ATTRIBUTES IN '' ARE CASE SENSITIVE!)
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> N16_US/1000<DASHTYPE='1' LINECOLOR='blue'>, N16NI_US_SOLA<DASHTYPE='2' LINECOLOR='red'>, N16_US_SOLA<DASHTYPE='2' LINECOLOR='black'> FILE='{%WORK_DIR}\FIGURES\N16_US_FIG.pdf';
+PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> N16_US/1000<DASHTYPE='1' LINECOLOR='blue'>, N16NI_US_SOLA<DASHTYPE='2' LINECOLOR='red'> FILE='{%WORK_DIR}\FIGURES\N16_US_FIG.pdf';
 
 // DELETE TEMPORARY SERIES
-INDEX *:*N16*!*;
-DELETE %N16_US_SOLA_ADDLEV, N16NI_US_SOLA_GRO, N16NI_US_SOLA_ADDGRO;
+INDEX *:*!*;
+DELETE N16NI_US_SOLA1!A, %N16_US_SOLA_ADDLEV, N16NI_US_SOLA_GRO, N16NI_US_SOLA_ADDGRO;
 
+// *************************
+//  LABOR FORCE
+// *************************
 
-
-TELL '*************************';
-TELL ' LABOR FORCE             ';
-TELL '*************************';
-
-// THIS SECTION CONTAINS THREE STAGES: 
-// 1. ESTABLISH APPROXIMATE LFP AND LF PATHS AT THE ANNUAL FREQUENCY, 
-// 2. ADDFACTOR LF AT THE QUARTERLY FREQUENCY,
-// 3. RECALCULATE LFP WITH ADDFACTORED LF
-
-
-// STAGE 1.
-
+// THIS SECTION CONTAINS THREE STAGES: 1) LFP, 2) LF, 3) RECALCULATE LFP WITH ADDFACTORED LF
+// USE LABOR FORCE PARTICIPATION RATES FROM: 
+// HTTPS://WWW.BLS.GOV/SPOTLIGHT/2016/A-LOOK-AT-THE-FUTURE-OF-THE-US-LABOR-FORCE-TO-2060/HOME.HTM
+// ADDITIONAL INFO:
+// HTTPS://WWW.BLS.GOV/OPUB/MLR/2017/ARTICLE/PROJECTIONS-OVERVIEW-AND-HIGHLIGHTS-2016-26.HTM
+// HTTPS://WWW.FRBSF.ORG/ECONOMIC-RESEARCH/PUBLICATIONS/ECONOMIC-LETTER/2018/NOVEMBER/US-LABOR-FORCE-PARTICIPATION-RATE-TREND-PROJECTION/
 
 // THE LFP IMPLIED BY N16NI_US_SOLA IS
 LFP_US_SOLA = LF_US/N16NI_US_SOLA*100;  // CALCULATE LFP ESTIMATE
@@ -222,14 +170,7 @@ PRT <%CURR_YR-2 %CURR_YR+3 N> LFP_US_SOLA, LFP_US, LFP_US_SOLA-LFP_US; // COMPAR
 // COMPARE TO HTTP://DATA.BLS.GOV/TIMESERIES/LNS11300000
 // THE LFP_US_A NUMBERS SHOULD EQUAL TO THE ANNUAL AVERAGES AT THE LINK ABOVE
 
-// USE LABOR FORCE PARTICIPATION RATES FROM: 
-// HTTPS://WWW.BLS.GOV/SPOTLIGHT/2016/A-LOOK-AT-THE-FUTURE-OF-THE-US-LABOR-FORCE-TO-2060/HOME.HTM
-// ADDITIONAL INFO:
-// HTTPS://WWW.BLS.GOV/OPUB/MLR/2017/ARTICLE/PROJECTIONS-OVERVIEW-AND-HIGHLIGHTS-2016-26.HTM
-// HTTPS://WWW.FRBSF.ORG/ECONOMIC-RESEARCH/PUBLICATIONS/ECONOMIC-LETTER/2018/NOVEMBER/US-LABOR-FORCE-PARTICIPATION-RATE-TREND-PROJECTION/
-
-// -------------------------
-// CALCULATE LFP RATES BASED ON THESE BLS STUDIES AND APPLY ADD FACTORS TO BRING LFP IN LINE WITH THE MORE RECENT STUDY: HTTPS://WWW.BLS.GOV/SPOTLIGHT/2016/A-LOOK-AT-THE-FUTURE-OF-THE-US-LABOR-FORCE-TO-2060/PDF/A-LOOK-AT-THE-FUTURE-OF-THE-US-LABOR-FORCE-TO-2060.PDF
+// CALCULATE THE LFP RATES BASED ON THESE BLS STUDIES AND APPLY ADD FACTORS TO BRING LFP IN LINE WITH THE MORE RECENT STUDY: HTTPS://WWW.BLS.GOV/SPOTLIGHT/2016/A-LOOK-AT-THE-FUTURE-OF-THE-US-LABOR-FORCE-TO-2060/PDF/A-LOOK-AT-THE-FUTURE-OF-THE-US-LABOR-FORCE-TO-2060.PDF
 // HTTPS://WWW.BLS.GOV/OPUB/MLR/2019/ARTICLE/PROJECTIONS-OVERVIEW-AND-HIGHLIGHTS-2018-28.HTM
 // 2018: 62.9%, 2028: 61.2%
 // HISTORY: 2016-17: 62.78%, 62.86%
@@ -237,251 +178,207 @@ LFP_US_SOLA_BLS <2016 2060> =  62.4,62.2,62.0,61.75,61.5,61.3,61.1,60.85,60.6,60
 LFP_US_SOLA_BLS_NEW <2016 2018> = 62.78,62.86,62.86;
 LFP_US_SOLA_BLS_NEW <2028 2028> = 61.2;
 LFP_US_SOLA_BLS_ADD = LFP_US_SOLA_BLS_NEW - LFP_US_SOLA_BLS;
-LFP_US_SOLA_BLS_ADD <2029 2060> ^= 0;
-// -------------------------
-
 SMOOTH LFP_US_SOLA_BLS_ADD = LFP_US_SOLA_BLS_ADD LINEAR;
-%DAT_START = FROMSERIES(LFP_US_SOLA_BLS, 'DATASTART');
-%DAT_END = FROMSERIES(LFP_US_SOLA_BLS, 'DATAEND');
-LFP_US_SOLA_BLS <%DAT_START %DAT_END> = LFP_US_SOLA_BLS + LFP_US_SOLA_BLS_ADD;
+LFP_US_SOLA_BLS_ADD <2029 2060> ^= 0;
+LFP_US_SOLA_BLS <2016 2060> = LFP_US_SOLA_BLS + LFP_US_SOLA_BLS_ADD;
 
 // USE THE ADJUSTED LFP FROM THE BLS TO EXTEND THE IMPLIED LFP
 %DAT_END = FROMSERIES(LFP_US_SOLA, 'DATAEND');
 LFP_US_SOLA <%DAT_END+1 %BNK_END> %= PCH(LFP_US_SOLA_BLS);
 PRT <%CURR_YR-2 %CURR_YR+3 N> LFP_US, LFP_US_SOLA_BLS, LFP_US_SOLA;
 
-// USE THE IMPLIED LFP TO EXTEND THE LF HISTORY
-%DAT_END = FROMSERIES(LF_US, 'DATAEND');
-LF_US_SOLA <%DAT_END+1 %BNK_END> %= PCH(LFP_US_SOLA * N16NI_US_SOLA);
-PRT <%CURR_YR-2 %CURR_YR+3 N> LF_US, LF_US_SOLA;
-
-// INTERPOLATE ANNUAL LFP AND LF TO QUARTERLY
+// INTERPOLATE ANNUAL DATA TO QUARTERLY
 LFP_US_SOLQ!Q = INTERP_QA_LIN(LFP_US_SOLA);
-PRT <%CURR_YR-2 %CURR_YR+3 N> LFP_US_SOLQ!Q, LFP_US!Q, LFP_US_SOLA, LFP_US;
-LF_US_SOLQ!Q = INTERP_QA_LIN(LF_US_SOLA);
-PRT <%CURR_YR-2 %CURR_YR+3 N> LF_US_SOLQ!Q, LF_US!Q, LF_US_SOLA, LF_US;
+COLLAPSE LFP_US_SOLA1!A = LFP_US_SOLQ!Q AVG; // FOR STOCK TYPE VARIABLES AVG, FOR FLOW TYPE VARIABLES TOTAL
+PRT <%CURR_YR-2 %CURR_YR+3 N> LFP_US_SOLQ!Q, LFP_US_SOLA1!A, LFP_US_SOLA, LFP_US;
 
 // PRODUCE A BASIC PLOT OF RESULTS (ATTRIBUTES IN '' ARE CASE SENSITIVE!)
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> LFP_US_SOLQ!Q<DASHTYPE='2' LINECOLOR='black'>, LFP_US!Q<DASHTYPE='1' LINECOLOR='black'>, LFP_US_SOLA<DASHTYPE='2' LINECOLOR='blue'>, LFP_US_SOLA_BLS<DASHTYPE='2' LINECOLOR='red'>, LFP_US<DASHTYPE='1' LINECOLOR='blue'> FILE='{%WORK_DIR}\FIGURES\LFP_US_FIG.pdf';
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> LF_US_SOLQ!Q<DASHTYPE='2' LINECOLOR='black'>, LF_US!Q<DASHTYPE='1' LINECOLOR='black'>, LF_US_SOLA<DASHTYPE='2' LINECOLOR='blue'>, LF_US<DASHTYPE='1' LINECOLOR='blue'> FILE='{%WORK_DIR}\FIGURES\LF_US_FIG.pdf';
+PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> LFP_US_SOLA<DASHTYPE='1' LINECOLOR='blue'>, LFP_US_SOLA_BLS<DASHTYPE='2' LINECOLOR='red'>, LFP_US<DASHTYPE='3' LINECOLOR='green'> FILE='{%WORK_DIR}\FIGURES\LFP_US_FIG.pdf';
 
 // DELETE TEMPORARY SERIES
-INDEX *:*LFP*!*;
-DELETE LFP_US_SOLA_BLS_ADD, LFP_US_SOLA_BLS_NEW, LFP_US_SOLA_BLS;
+INDEX *:*!*;
+DELETE LFP_US_SOLA1!A, LFP_US_SOLA_BLS_ADD, LFP_US_SOLA_BLS_NEW, LFP_US_SOLA_BLS;
 
 
-// STAGE 2.
+// EViews code to be ported:
 
-
-OPTION FREQ=Q;
-
-// ADDFACTOR FOR LEVEL (TRANSITION FROM HISTORY TO FORECAST)
-// FIND THE LAST VALUE IN HISTORY, CREATE AN ADDFACTOR WITH THE DIFFERENCE AND ADJUST LEVEL
-%DAT_END = FROMSERIES(LF_US, 'DATAEND');
-%LF_US_SOLQ_ADDLEV = LF_US[%DAT_END] - LF_US_SOLQ[%DAT_END];
-LF_US_SOLQ <%DAT_END %BNK_END> = LF_US_SOLQ + %LF_US_SOLQ_ADDLEV;
-
-// COMPARE GROWTH RATES IN HISTORY AND FORECAST
-PRT <%CURR_YR-2 %CURR_YR+3> LF_US, LF_US_SOLQ;
-
-// -------------------------
-// ADDFACTOR FOR GROWTH
-LF_US_SOLQ_ADDGRO = 0;
-LF_US_SOLQ_ADDGRO <%DAT_END+1 %DAT_END+15> = M();
-LF_US_SOLQ_ADDGRO <%DAT_END+1 %DAT_END+10> = -1.5, -1.2, -0.6, -0.3, -0.1, 0, 0.1, 0.2, 0.4, 0.8;
-// -------------------------
-
-SMOOTH LF_US_SOLQ_ADDGRO = LF_US_SOLQ_ADDGRO LINEAR;
-
-// EXTEND HISTORY USING GROWTH RATE (FUNCTIONS DEFINED IN LIB.GCM)
-LF_US_SOLQ_GRO = PCHA(LF_US_SOLQ)+LF_US_SOLQ_ADDGRO;
-LF_US_SOLQ_GRO = PCHA_TO_PCH(LF_US_SOLQ_GRO);
-LF_US_SOLQ <%BNK_START %DAT_END> = LF_US;
-LF_US_SOLQ <%DAT_END+1 %BNK_END> %= LF_US_SOLQ_GRO;
-
-// PRINT RESULTS
-PRT <%CURR_YR-2 %CURR_YR+3> LF_US_SOLQ_GRO, LF_US_SOLQ_ADDGRO, PCHA(LF_US_SOLQ), PCHY(LF_US_SOLQ), LF_US_SOLQ, LF_US;
-PRT %LF_US_SOLQ_ADDLEV;
-
-// AGGREGATE TO ANNUAL FREQUENCY
-COLLAPSE LF_US_SOLA!A = LF_US_SOLQ!Q AVG;
-PRT <%CURR_YR-2 %CURR_YR+3> LF_US_SOLA!A, LF_US_SOLQ!Q, LF_US!A, LF_US!Q;
-
-// PRODUCE A BASIC PLOT OF RESULTS (ATTRIBUTES IN '' ARE CASE SENSITIVE!)
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> LF_US<DASHTYPE='1' LINECOLOR='blue'>, LF_US_SOLQ<DASHTYPE='2' LINECOLOR='blue'>, LF_US!A<DASHTYPE='1' LINECOLOR='red'>, LF_US_SOLA!A<DASHTYPE='2' LINECOLOR='red'> FILE='{%WORK_DIR}\FIGURES\LF_US_FIG2.pdf';
-
-PLOT <%CURR_YR-10 %CURR_YR+15> LF_US!Q<TYPE=LINES DASHTYPE='1'>, LF_US_SOLQ!Q<TYPE=LINES DASHTYPE='2'>, PCHA(LF_US!Q)<TYPE=BOXES Y2>, PCHA(LF_US_SOLQ!Q)<TYPE=BOXES Y2> FILE='{%WORK_DIR}\FIGURES\LF_US_GR_FIG.pdf';
-
-// DELETE TEMPORARY SERIES
-INDEX *:*LF*!*;
-DELETE %LF_US_SOLQ_ADDLEV, LF_US_SOLQ_GRO, LF_US_SOLQ_ADDGRO;
-
-
-// STAGE 3.
-
-
-// CALCULATE LFP IMPLIED BY LF AND N16NI_US_SOLA
-LFP_US_SOLQ_IMP = LF_US_SOLQ/N16NI_US_SOLQ*100;  
-// USE THE IMPLIED LFP EXTEND HISTORY
-%DAT_END = FROMSERIES(LFP_US, 'DATAEND');
-LFP_US_SOLQ <%BNK_START %DAT_END> = LFP_US;
-LFP_US_SOLQ <%DAT_END+1 %BNK_END> %= PCH(LFP_US_SOLQ_IMP);
-// COMPARE THE IMPLIED AND ACTUAL LFP
-PRT <%CURR_YR-2 %CURR_YR+3 N> LFP_US_SOLQ_IMP, LFP_US_SOLQ, LFP_US, LFP_US_SOLQ-LFP_US; 
-
-// AGGREGATE TO ANNUAL FREQUENCY
-COLLAPSE LFP_US_SOLA!A = LFP_US_SOLQ!Q AVG;
-PRT <%CURR_YR-2 %CURR_YR+3 N> LFP_US_SOLA!A, LFP_US_SOLQ!Q, LFP_US!A, LFP_US!Q;
-
-// PRODUCE A BASIC PLOT OF RESULTS (ATTRIBUTES IN '' ARE CASE SENSITIVE!)
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> LFP_US<DASHTYPE='1' LINECOLOR='blue'>, LFP_US_SOLQ<DASHTYPE='2' LINECOLOR='blue'>, LFP_US!A<DASHTYPE='1' LINECOLOR='red'>, LFP_US_SOLA!A<DASHTYPE='2' LINECOLOR='red'> FILE='{%WORK_DIR}\FIGURES\LFP_US_FIG2.pdf';
-
-// DELETE TEMPORARY SERIES
-INDEX *:*LFP*!*;
-DELETE LFP_US_SOLQ_IMP;
-
-
-
-TELL '*************************';
-TELL ' UNEMPLOYMENT RATE AND EMPLOYMENT';
-TELL '*************************';
-
-// -------------------------
-// SHORT RUN ASSUMPTION
-UR_US_SOLQ <2020Q2 2021Q4> = 14, 11.5, 10, 8.0, 7, 6.5, 6;
-// LONG RUN = NAIRU
-UR_US_SOLQ <2025 %BNK_END> = 4.3;
-// -------------------------
-
-SMOOTH UR_US_SOLQ = UR_US_SOLQ LINEAR;
-
-// EMPLOYMENT FORECAST
-%DAT_END = FROMSERIES(EMPL_US, 'DATAEND');
-EMPL_US_SOLQ <%DAT_END+1 %BNK_END> = (1-UR_US_SOLQ/100)*LF_US_SOLQ;
-
-// AGGREGATE TO ANNUAL FREQUENCY
-COLLAPSE UR_US_SOLA!A = UR_US_SOLQ!Q AVG;
-PRT <%CURR_YR-2 %CURR_YR+3 N> UR_US_SOLA!A, UR_US_SOLQ!Q, UR_US!A, UR_US!Q;
-COLLAPSE EMPL_US_SOLA!A = EMPL_US_SOLQ!Q AVG;
-PRT <%CURR_YR-2 %CURR_YR+3> EMPL_US_SOLA!A, EMPL_US_SOLQ!Q, EMPL_US!A, EMPL_US!Q;
-
-// PRODUCE A BASIC PLOT OF RESULTS (ATTRIBUTES IN '' ARE CASE SENSITIVE!)
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> UR_US<DASHTYPE='1' LINECOLOR='blue'>, UR_US_SOLQ<DASHTYPE='2' LINECOLOR='blue'>, UR_US!A<DASHTYPE='1' LINECOLOR='red'>, UR_US_SOLA!A<DASHTYPE='2' LINECOLOR='red'> FILE='{%WORK_DIR}\FIGURES\UR_US_FIG.pdf';
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> EMPL_US<DASHTYPE='1' LINECOLOR='blue'>, EMPL_US_SOLQ<DASHTYPE='2' LINECOLOR='blue'>, EMPL_US!A<DASHTYPE='1' LINECOLOR='red'>, EMPL_US_SOLA!A<DASHTYPE='2' LINECOLOR='red'> FILE='{%WORK_DIR}\FIGURES\EMPL_US_FIG.pdf';
-
-PLOT <%CURR_YR-10 %CURR_YR+15> EMPL_US!Q<TYPE=LINES DASHTYPE='1'>, EMPL_US_SOLQ!Q<TYPE=LINES DASHTYPE='2'>, PCHA(EMPL_US!Q)<TYPE=BOXES Y2>, PCHA(EMPL_US_SOLQ!Q)<TYPE=BOXES Y2> FILE='{%WORK_DIR}\FIGURES\EMPL_US_GR_FIG.pdf';
-
-// DELETE TEMPORARY SERIES
-INDEX *:*UR*!*, *:*EMPL*!*;
-
-
-
-TELL '*************************';
-TELL ' PRODUCTIVITY AND GDP    ';
-TELL '*************************';
-
-// DEFINE PRODUCTIVITY
-PROD_US = GDP_R_US / EMPL_US;
-PROD_US_SOLQ = PROD_US;
-// MOVING AVERAGES OF 10 AND 20 YEAR ANNUAL PRODUCTIVITY GROWTH
-PRT <%CURR_YR-10 %CURR_YR N> PCHA(PROD_US), (EXP((LOG(PROD_US)-LAG(LOG(PROD_US),40))/10)-1)*100, (EXP((LOG(PROD_US)-LAG(LOG(PROD_US),80))/20)-1)*100;
-
-// -------------------------
-// SHORT (AND LONG) RUN ASSUMPTION
-PROD_US_SOLQ_GRO = PCHA(PROD_US_SOLQ);
-PROD_US_SOLQ_GRO <2020Q2 %BNK_END> = 6, -1, 1, 1.2, 1.4, 1.5, 1.6, 1.6, 1.5, 1.4, 1.3, 1.2 REP *;
-PROD_US_SOLQ_GRO <%BNK_END %BNK_END> = 1.2;
-// -------------------------
-
-SMOOTH PROD_US_SOLQ_GRO = PROD_US_SOLQ_GRO LINEAR;
-
-// GDP FORECAST
-%DAT_END = FROMSERIES(GDP_R_US, 'DATAEND');
-PROD_US_SOLQ_GRO = PCHA_TO_PCH(PROD_US_SOLQ_GRO);
-PROD_US_SOLQ <%DAT_END+1 %BNK_END> %= PROD_US_SOLQ_GRO;
-GDP_R_US_SOLQ <%DAT_END+1 %BNK_END> = PROD_US_SOLQ * EMPL_US_SOLQ;
-
-// GDP PER CAPITA FORECAST
-%DAT_END = FROMSERIES(GDPPC_R_US, 'DATAEND');
-GDPPC_R_US_SOLQ <%DAT_END+1 %BNK_END> = GDP_R_US_SOLQ / N_US_SOLQ * 1000 * 1000;
-
-// AGGREGATE TO ANNUAL FREQUENCY
-COLLAPSE GDP_R_US_SOLA!A = GDP_R_US_SOLQ!Q AVG;
-PRT <%CURR_YR-2 %CURR_YR+3> GDP_R_US_SOLA!A, GDP_R_US_SOLQ!Q, GDP_R_US!A, GDP_R_US!Q;
-
-OPTION FREQ=A;
-
-// ANNUAL HISTORICAL PRODUCTIVITY
-PROD_US = GDP_R_US/EMPL_US;
-PROD_US_SOLA = PROD_US;
-// ANNUAL PRODUCTIVITY FORECAST
-%DAT_END = FROMSERIES(GDP_R_US, 'DATAEND');
-PROD_US_SOLA <%DAT_END+1 %BNK_END> = GDP_R_US_SOLA/EMPL_US_SOLA;
-// ANNUAL GDPPC FORECAST
-GDPPC_R_US_SOLA <%DAT_END+1 %BNK_END> = GDP_R_US_SOLA / N_US_SOLA * 1000 * 1000;
-
-// PRODUCE A BASIC PLOT OF RESULTS (ATTRIBUTES IN '' ARE CASE SENSITIVE!)
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> PROD_US!Q<DASHTYPE='1' LINECOLOR='blue'>, PROD_US_SOLQ!Q<DASHTYPE='2' LINECOLOR='blue'>, PROD_US!A<DASHTYPE='1' LINECOLOR='red'>, PROD_US_SOLA!A<DASHTYPE='2' LINECOLOR='red'> FILE='{%WORK_DIR}\FIGURES\PROD_US_FIG.pdf';
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> GDP_R_US!Q<DASHTYPE='1' LINECOLOR='blue'>, GDP_R_US_SOLQ!Q<DASHTYPE='2' LINECOLOR='blue'>, GDP_R_US!A<DASHTYPE='1' LINECOLOR='red'>, GDP_R_US_SOLA!A<DASHTYPE='2' LINECOLOR='red'> FILE='{%WORK_DIR}\FIGURES\GDP_R_US_FIG.pdf';
-
-PLOT <%CURR_YR-10 %CURR_YR+15> GDP_R_US!Q<TYPE=LINES DASHTYPE='1'>, GDP_R_US_SOLQ!Q<TYPE=LINES DASHTYPE='2'>, PCHA(GDP_R_US!Q)<TYPE=BOXES Y2>, PCHA(GDP_R_US_SOLQ!Q)<TYPE=BOXES Y2> FILE='{%WORK_DIR}\FIGURES\GDP_R_US_GR_FIG.pdf';
-
-// DELETE TEMPORARY SERIES
-INDEX *:*PROD*!*, *:*GDP*!*;
-DELETE PROD_US_SOLQ_GRO!Q;
-
-
-
-TELL '*************************';
-TELL ' CPI                     ';
-TELL '*************************';
-
-OPTION FREQ=Q;
-
-// -------------------------
-// SHORT (AND LONG) RUN ASSUMPTION
-CPI_US_SOLQ_GRO <2020Q2 2020Q4> = -3.5, 0, 0.5;
-CPI_US_SOLQ_GRO <2025Q1 %BNK_END> = 2.0;
-// -------------------------
-
-SMOOTH CPI_US_SOLQ_GRO = CPI_US_SOLQ_GRO LINEAR;
-
-// CPI FORECAST
-%DAT_END = FROMSERIES(CPI_US, 'DATAEND');
-CPI_US_SOLQ_GRO = PCHA_TO_PCH(CPI_US_SOLQ_GRO);
-CPI_US_SOLQ <%DAT_END+1 %BNK_END> %= CPI_US_SOLQ_GRO;
-
-// AGGREGATE TO ANNUAL FREQUENCY
-COLLAPSE CPI_US_SOLA!A = CPI_US_SOLQ!Q AVG;
-PRT <%CURR_YR-2 %CURR_YR+3> CPI_US_SOLA!A<P>, PCHA(CPI_US_SOLQ!Q)<N>, CPI_US!A<P>, PCHA(CPI_US!Q)<N>;
-
-
-// PRODUCE A BASIC PLOT OF RESULTS (ATTRIBUTES IN '' ARE CASE SENSITIVE!)
-PLOT <%CURR_YR-10 %CURR_YR+15 TYPE=LINES> PCHA(CPI_US!Q)<DASHTYPE='1' LINECOLOR='blue'>, PCHA(CPI_US_SOLQ!Q)<DASHTYPE='2' LINECOLOR='blue'>, CPI_US!A<DASHTYPE='1' LINECOLOR='red' P>, CPI_US_SOLA!A<DASHTYPE='2' LINECOLOR='red' P> FILE='{%WORK_DIR}\FIGURES\CPI_US_FIG.pdf';
-
-PLOT <%CURR_YR-10 %CURR_YR+15> CPI_US!Q<TYPE=LINES DASHTYPE='1'>, CPI_US_SOLQ!Q<TYPE=LINES DASHTYPE='2'>, PCHA(CPI_US!Q)<TYPE=BOXES Y2>, PCHA(CPI_US_SOLQ!Q)<TYPE=BOXES Y2> FILE='{%WORK_DIR}\FIGURES\CPI_US_GR_FIG.pdf';
-
-// DELETE TEMPORARY SERIES
-INDEX *:*CPI*!*;
-DELETE CPI_US_SOLQ_GRO!Q;
-
-
-
-TELL '*************************';
-TELL ' SAVE                    ';
-TELL '*************************';
-
-INDEX *!* TO #EXT_LIST;
-WRITE {#EXT_LIST} FILE=EXT_DAT;
-EXPORT <ALL TSD> {#EXT_LIST} FILE=EXT_DAT;
-
-// EXPORT DATA FOR FORECAST SNAPSHOTS
-// REPLACE _US WITH @US IN THE TSD FILES
-#USQ = GDP_R_US, UR_US, LF_US, LFP_US, EMPL_US, CPI_US, N_US;
-#USA = GDP_R_US, UR_US, LF_US, LFP_US, EMPL_US, CPI_US, N_US;
-
-EXPORT <2008 2025 TSD> {#USQ}_SOLQ FILE=EXT_DAT_QF;
-EXPORT <2008 2025 TSD> {#USQ} FILE=EXT_DAT_QH;
-OPTION FREQ=A;
-EXPORT <1980 2050 TSD> {#USA}_SOLA FILE=EXT_DAT_AF;
-EXPORT <1980 2050 TSD> {#USA} FILE=EXT_DAT_AH;
+// 	smpl @all 			'reset sample
+// 	print lfp_us_a lfp_us_sola lfp_us_solatemp 	'compare forecast to interpolated series
+// 	'copy(o,c=q) usa\lfp_us_sola usq\lfp_us_solqtemp 	'interpolate annual series
+// 	copy(o,c=cubicf) usa\lfp_us_sola usq\lfp_us_solqtemp 	'interpolate annual series
+// 
+// 	delete lfp_us_solatemp lfp_us_sola_bls lfp_us_solaaddif lfp_us_solapchadd lfp_us_solapchaddint lfp_us_sola_bls_add lfp_us_sola_bls_new lfp_us_solabls1 lfp_us_solabls1_int lfp_us_solabls_addint  	'delete temporary series
+// 
+// pageselect usq 		'make the quarterly page active
+// 
+// 	smpl @all 			'reset sample
+// 
+// 	'start addfactor transition level
+// 
+// 	%lastobs = lfp_us_q.@last 'end of history
+// 	scalar lfp_us_solqaddif = @elem(lfp_us_q, %lastobs) - @elem(lfp_us_solqtemp, %lastobs) 	'addfactor based on difference
+// 	series lfp_us_solqadd = 0
+// 	
+// 	'
+// 	'
+// 	'
+// 	'smpl {%lastobs}+1 {%lastobs}+5 	'18Q3-
+// 	'lfp_us_solqadd.fill(s) 0  	'add factor based on judgement
+// 	'smpl {%lastobs}+5 !forecastend
+// 	'lfp_us_solqadd.fill(s,l) 0 	'add factor based on judgement
+// 	'smpl {%lastobs}+1 !forecastend
+// 	'lfp_us_solqadd = lfp_us_solqadd-0 	'adjust magnitude if necessary
+// 	'smpl @all 			'reset sample
+//  	'add factor based on judgement
+// 	'smpl @all 			'reset sample
+// 	'lfp_us_solqadd.ipolate(type = cs, tension = 0.8) lfp_us_solqaddint 	
+// 	'lfp_us_solqadd.ipolate(type = lin) lfp_us_solqaddint 	
+// 	'copy(o) lfp_us_solqaddint lfp_us_solqadd 	'extend ur history with interpolated values
+// 	'
+// 	'
+// 	'
+// 	
+// 	smpl {%lastobs} !forecastend 	'set sample for forecast
+// 	lfp_us_solq = lfp_us_solqtemp + lfp_us_solqaddif + lfp_us_solqadd 	'apply addfactor
+// 
+// 	'end addfactor transition level
+// 
+// 	'start addfactor transition growth
+// 
+// 	smpl @all 			'reset sample
+// 	series lfp_us_solqpcha = @pcha(lfp_us_solq) 	'calculate annual growth rate
+// 	series lfp_us_solqpchaadd = 0 	'declare series
+// 
+// 	'
+// 	'
+// 	'
+// 	smpl {%lastobs}+1 {%lastobs}+15 	'18Q4-
+// 	lfp_us_solqpchaadd.fill(s,l) na  	'add factor based on judgement
+// 	'smpl {%lastobs}+1 {%lastobs}+1 		'18Q4-
+// 	'lfp_us_solqpchaadd.fill(s) 0.005  	'add factor based on judgement
+// 	smpl {%lastobs}+1 {%lastobs}+4 		'18Q4-
+// ' 	lfp_us_solqpchaadd.fill(s) 0.003  	'add factor based on judgement
+// ' 	lfp_us_solqpchaadd.fill(s) 0.001  	'add factor based on judgement
+// 	lfp_us_solqpchaadd.fill(s) -0.015, -0.012, -0.006, -0.003   	'add factor based on judgement
+// 	smpl {%lastobs}+5 {%lastobs}+10 		'18Q4-
+// 	lfp_us_solqpchaadd.fill(s) -0.001, 0, 0.001, 0.002, 0.004, 0.008   	'add factor based on judgement
+// 	smpl @all 			'reset sample
+// 	lfp_us_solqpchaadd.ipolate(type = lin) lfp_us_solqpchaaddint 	
+// 	copy(o) lfp_us_solqpchaaddint lfp_us_solqpchaadd 	'extend history with interpolated values
+// 	'
+// 	'
+// 	'
+// 
+// 	smpl @all 			'reset sample
+// 	copy(o) lfp_us_q lfp_us_solq 	'initialize forecast with history
+// 	smpl {%lastobs}+1 !forecastend 	'set sample for forecast
+// 	lfp_us_solq = lfp_us_solq(-1)*(1+lfp_us_solqpcha+lfp_us_solqpchaadd)^0.25 	'extend history using growth rate
+// 
+// 	'end addfactor transition growth
+// 
+// 	smpl @all 			'reset sample
+// 	print lfp_us_solqaddif
+// 	print lfp_us_q lfp_us_solqadd lfp_us_solqtemp lfp_us_solq @pcha(lfp_us_solq) 	'check forecast after addfactoring
+// 	copy(o,c=a) usq\lfp_us_solq usa\lfp_us_solatemp 	'aggregate quarterly series after addfactoring
+// 
+// 	delete(noerr) lfp_us_solqaddint lfp_us_solqadd lfp_us_solqaddif lfp_us_solqtemp lfp_us_solqpcha lfp_us_solqpchaadd lfp_us_solqpchaaddint 		'delete temporary series
+// 	
+// pageselect usa 		'make the annual page active
+// 
+// 	smpl @all 			'reset sample
+// 
+// 	%lastobs = lfp_us_a.@last 'end of history
+// 	copy(o) lfp_us_a lfp_us_sola 	'initialize forecast with history
+// 	smpl {%lastobs}+1 !forecastend 	'set sample for forecast
+// 	lfp_us_sola = lfp_us_solatemp 	'extend history with aggregated values
+// 	smpl @all 			'reset sample
+// 
+// 	delete lfp_us_solatemp
+// 
+// 	'obtain lf forecast based on lfp forecast
+// 
+// pageselect usq 		'make the quarterly page active
+// 
+// 	smpl @all 			'reset sample
+// 
+// 	series lf_us_solqtemp = lfp_us_solq/100*n16ni_us_solq 	'obtain lf forecasts
+// 
+// 	'start addfactor transition level
+// 
+// 	%lastobs = lf_us_q.@last 'end of history
+// 	scalar lf_us_solqaddif = @elem(lf_us_q, %lastobs) - @elem(lf_us_solqtemp, %lastobs) 	'addfactor based on difference
+// 	series lf_us_solqadd = 0
+// 
+// 	'
+// 	'
+// 	'
+// 	'smpl XX XX
+// 	'lf_us_solqadd.fill(s) 	'add factor based on judgement
+// 	'smpl @all 			'reset sample
+// 	'
+// 	'
+// 	'
+// 
+// 	smpl {%lastobs} !forecastend 	'set sample for forecast
+// 	lf_us_solq = lf_us_solqtemp + lf_us_solqaddif + lf_us_solqadd 	'apply addfactor
+// 
+// 	'end addfactor transition level
+// 	
+// 	'start addfactor transition growth
+// 
+// 	smpl @all 			'reset sample
+// 	series lf_us_solqpcha = @pcha(lf_us_solq) 	'calculate annual growth rate
+// 	series lf_us_solqpchaadd = 0 	'declare series
+// 
+// 	'
+// 	'
+// 	'
+// 	'smpl {%lastobs}+1 {%lastobs}+1
+// 	'lf_us_solqpchaadd.fill(s) -0.001 	'add factor based on judgement
+// 	'smpl @all 			'reset sample
+// 	'lf_us_solqpchaadd.ipolate(type = lin) lf_us_solqpchaaddint 	
+// 	'copy(o) lf_us_solqpchaaddint lf_us_solqpchaadd 	'extend history with interpolated values
+// 	'
+// 	'
+// 	'
+// 
+// 	'smpl {%lastobs}+1 !forecastend 	'set sample for forecast
+// 	'lf_us_solq = lf_us_solq(-1)*(1+lf_us_solqpcha+lf_us_solqpchaadd)^0.25 	'extend history using growth rate
+// 
+// 	'end addfactor transition growth
+// 
+// 	smpl @all 			'reset sample
+// 	print lf_us_solqaddif
+// 	print  @pcha(lf_us_solq) lf_us_solq lf_us_solqtemp lf_us_solqadd 	'check forecast after addfactoring
+// 	copy(o,c=a) usq\lf_us_solq usa\lf_us_solatemp 	'aggregate quarterly series after addfactoring
+// 
+// 	delete(noerr) lf_us_solqadd lf_us_solqaddif lf_us_solqpcha lf_us_solqpchaadd lf_us_solqpchaaddint lf_us_solqtemp 	'delete temporary series
+// 	
+// '	%lastobs = lfp_us_q.@last 	'end of history
+// '	smpl {%lastobs}+1 !forecastend 	'set sample for forecast
+// '	lfp_us_solq = lf_us_solq/n16ni_us_solq*100 	'recalculate lfp using lf forecast
+// '	smpl @all 			'reset sample
+// 
+// 	'delete n16ni_us_solq 	'delete temporary series
+// 
+// pageselect usa 		'make the annual page active
+// 
+// 	smpl @all 			'reset sample
+// 
+// 	%lastobs = lf_us_a.@last 	'end of history
+// 	smpl {%lastobs}+1 !forecastend 	'set sample for forecast
+// 	lf_us_sola = lf_us_solatemp 	'extend history with aggregated values
+// 	smpl @all 			'reset sample
+// 	
+// '	%lastobs = lfp_us_a.@last 	'end of history
+// '	smpl {%lastobs}+1 !forecastend 	'set sample for forecast
+// '	lfp_us_sola = lf_us_sola/n16ni_us_sola*100 	'recalculate lfp using lf forecast
+// '	smpl @all 			'reset sample
+// 
+// 	delete lf_us_solatemp 'n16ni_us_sola 	'delete temporary series
+// 
+// 
+// 
+// 
+// 
+// 
