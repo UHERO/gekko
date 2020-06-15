@@ -1,0 +1,406 @@
+//This file graphs solutions from CAmod.
+//Last modified by pop Oct, 05
+        option SCREEN MESSAGE MUTE NO SCROLL FULL HOLD 6;
+close *;
+
+//ASSIGN VRSN             LITERAL 'SOL';       !version: SOL, HIGH, LOW   (Baseline, High, Low) (Do not use SOLA. 'A' will be appended later in the program.)
+//ASSIGN SPAN             LITERAL 'S';         !SHORT = S or LONG = L
+//ASSIGN COMP_PREVFC      LITERAL 'Y';         !Y or N  (if Y, need to specify COMPBNK and COMPLABEL below)
+%PRINT_RESULT = 'Y';         //Y or N
+//ASSIGN SAVEGRPH         LITERAL 'N';         !Y or N
+%DATAFROMSOLBNK = 'Y';         //Y or N (if Y, the program will delete work:*.sol and get data from solution bank to plot; otherwise data in work.bnk will be useds)
+//ASSIGN COMPBNK          LITERAL 'HECO07';        ! DATABANK CONTAINING PREVIOUS FORECAST
+
+%COMP3CNTY = 'Y';        //compare 3 counties.
+%COMP3CNTYONLY = 'N';
+
+%RUN_TABLECMD = 'N';         //Y or N (run tabHIOUTLOOK.CMD)
+
+//*******************************************
+//ASSIGN SIZE             LITERAL 'SIZE 8.5 BY 5.5';  !graph size, default = '8.5 BY 5.5';
+//ASSIGN SIZE             LITERAL 'SIZE 10 BY 8';  !graph size, default = '8.5 BY 5.5';
+%SIZE = 'SIZE 11.3 BY 5.9';  //-- for cb save graph-- laptop;
+//ASSIGN SIZE             LITERAL 'SIZE 16 BY 9';  !-- for cb save graph-- cinema display;
+tell '{%SIZE}';
+
+
+//ASSIGN COMPLABEL        LITERAL '#COMPBNK';        ! GRAPH LABELs  (WARNING: NO SPACE ALLOWED IN LABEL)
+//ASSIGN SHORT_STRT       LITERAL '2005';
+//ASSIGN SHORT_END        LITERAL '2020';
+//ASSIGN LONG_STRT        LITERAL '1985';
+//ASSIGN LONG_END         LITERAL '2035';
+
+open < YES> {%BLSBNK}, {%BEABNK}, CENSUS, PROC, TOUR, QSOL, ASOL;
+
+delete WORK:*!Q, WORK:*!A;  //delete series from add factor.  so, title will be collected from series in tour.bnk.
+
+STRUCTURE SERIES ORIGIN 'ORIGIN SOURCE OF DATA' 200 A, UNITS 20 A, FTC 1 A, TYPE 1 A;
+
+if ('{%COMP_PREVFC}'=='Y');
+    open < YES> QSOL{%COMPBNK}, ASOL{%COMPBNK}, CASOL{%COMPBNK};
+END;
+
+if ('{%SAVEGRPH}'=='Y');
+    //NOTE: Need to have WMF2EPS installed in C:\wmf2eps\ and GHOSTSCRIP8.50 installed in C:\gs\.  Programs can be found in I:\software\
+//    OPEN <PROTECT YES> TOUR|#VRSN|;
+//    ASSIGN PRINT_RESULT     LITERAL 'N';
+    %CURRENT_DIR = FILE DIRECTORY;
+    %CURRENT_SCRHOLD = SCREEN HOLD;
+        option FILE DIRECTORY '{%GRPHDIR}';
+        sys 'del *.emf, *.eps';          //delete existing emf and eps files
+        option FILE DIRECTORY %CURRENT_DIR;
+        option SCREEN MESSAGE MUTE NO SCROLL FULL HOLD 0;
+END;
+
+if ('{%DATAFROMSOLBNK}'=='Y');
+    delete WORK:*.SOL*;
+    open <> CASOL;
+END;
+
+if ('{%SPAN}'=='S');
+//    SET PERIOD #SHORT_STRT  #SHORT_END;
+    %STRT = '{%SHORT_STRT}';
+    %END = '{%SHORT_END}';
+    %GRPHPROC = 'GRAPH3L1B_Y2';
+    %GRPHPROCCOMPL = 'graph <go> USING I:\gra\M3L1B_Y2F.gra';
+    %GRPHPROCCOMPB = 'graph <go> USING I:\gra\TA4B_Y2F.gra';
+END;
+
+if ('{%SPAN}'=='L');
+    %STRT = '{%LONG_STRT}';
+    %END = '{%LONG_END}';
+    %GRPHPROC = 'GRAPH3L1B_Y5';
+    %GRPHPROCCOMPL = 'graph <go> USING I:\gra\M3L1B_Y5F.gra';
+    %GRPHPROCCOMPB = 'graph <go> USING I:\gra\TA4B_Y5F.gra';
+END;
+
+time %STRT  %END;
+
+//*******************************************
+//  ALL LISTS
+//*******************************************
+
+#POPLF  = NR@HI, NRCNM@HI, NRM@HI, NRCMD@HI, NR@HON,  NR@MAU, NR@HAW, NR@KAU, LF@HI, EMPL@HI, UR@HI, LF@HON, UR@HON, CPI@HON;
+
+#E_HAW  = EAG@HAW, ECT@HAW, EMN@HAW, E_TRADE@HAW, E_TU@HAW, E_FIR@HAW, EAF@HAW, EHC@HAW, E_ELSE@HAW, E_SV@HAW, EGVFD@HAW, E_GVSL@HAW, EGV@HAW, E_NF@HAW, E@HAW;
+#E_MAU  = EAG@MAU, ECT@MAU, EMN@MAU, E_TRADE@MAU, E_TU@MAU, E_FIR@MAU, EAF@MAU, EHC@MAU, E_ELSE@MAU, E_SV@MAU, EGVFD@MAU, E_GVSL@MAU, EGV@MAU, E_NF@MAU, E@MAU;
+#E_KAU  = EAG@KAU, ECT@KAU, EMN@KAU, E_TRADE@KAU, E_TU@KAU, E_FIR@KAU, EAF@KAU, EHC@KAU, E_ELSE@KAU, E_SV@KAU, EGVFD@KAU, E_GVSL@KAU, EGV@KAU, E_NF@KAU, E@KAU;
+
+//SOME VARIABLES IN THE FOLLOWING LISTS MAY NOT BE AVAILABLE.
+//LIST YL_HAW     = YLAG_R@HAW, YL_CTMI_R@HAW, YLMN_R@HAW, YL_TRADE_R@HAW, YL_TU_R@HAW, YL_FIR_R@HAW, YLAF_R@HAW, YLHC_R@HAW, YL_ELSE_R@HAW, YL_SV_R@HAW, YLGVFD_R@HAW, YL_GVSL_R@HAW, YLGV_R@HAW, YL_NF_R@HAW;
+
+#YL_HON     = YLAG_R@HON, YL_CTMI_R@HON, YL_TRADE_R@HON, YL_TU_R@HON, YL_FIR_R@HON,  YLHC_R@HON,  YLGVFD_R@HON, YL_GVSL_R@HON, YLGV_R@HON, YL_NF_R@HON;
+#YL_HAW     = YLAG_R@HAW, YL_CTMI_R@HAW, YL_TRADE_R@HAW, YL_TU_R@HAW, YL_FIR_R@HAW,  YLHC_R@HAW,  YLGVFD_R@HAW, YL_GVSL_R@HAW, YLGV_R@HAW, YL_NF_R@HAW;
+#YL_MAU     = YLAG_R@MAU, YL_CTMI_R@MAU, YLMN_R@MAU, YL_TRADE_R@MAU, YL_TU_R@MAU, YL_FIR_R@MAU, YLAF_R@MAU, YLHC_R@MAU, YL_ELSE_R@MAU, YL_SV_R@MAU, YLGVFD_R@MAU, YL_GVSL_R@MAU, YLGV_R@MAU, YL_NF_R@MAU;
+
+//LIST YL_KAU     = YLAG_R@KAU, YL_CTMI_R@KAU, YLMN_R@KAU, YL_TRADE_R@KAU, YL_TU_R@KAU, YL_FIR_R@KAU, YLAF_R@KAU, YLHC_R@KAU, YL_ELSE_R@KAU, YL_SV_R@KAU, YLGVFD_R@KAU, YL_GVSL_R@KAU, YLGV_R@KAU, YL_NF_R@KAU;
+#YL_KAU     = YLAG_R@KAU, YL_CTMI_R@KAU, YL_TRADE_R@KAU, YL_TU_R@KAU, YL_FIR_R@KAU,   YLGVFD_R@KAU, YL_GVSL_R@KAU, YLGV_R@KAU, YL_NF_R@KAU;
+
+#Y_HI   = YSOCSEC_R@HI, YTRNSF_R@HI, YDIV_R@HI, YL_R@HI, Y_R@HI;
+#Y_HON  = YSOCSEC_R@HON, YTRNSF_R@HON, YDIV_R@HON, YL_R@HON, Y_R@HON;
+#Y_NBI  = YSOCSEC_R@NBI, YTRNSF_R@NBI, YDIV_R@NBI, YL_R@NBI, Y_R@NBI;
+#Y_HAW  = YSOCSEC_R@HAW, YTRNSF_R@HAW, YDIV_R@HAW, YL_R@HAW, Y_R@HAW;
+#Y_MAU  = YSOCSEC_R@MAU, YTRNSF_R@MAU, YDIV_R@MAU, YL_R@MAU, Y_R@MAU;
+#Y_KAU  = YSOCSEC_R@KAU, YTRNSF_R@KAU, YDIV_R@KAU, YL_R@KAU, Y_R@KAU;
+
+
+#ALL = #E_HAW,#E_MAU,#E_KAU,#YL_HAW,#YL_MAU,#YL_KAU,#Y_HAW,#Y_MAU,#Y_KAU;
+
+#YAG     =  YLAG_R@HI, YLAG_R@HON, YLAG_R@NBI, YLAG_R@HAW, YLAG_R@MAU, YLAG_R@KAU; 
+//LIST YCT     =  YL_CTMI_R@HI, YL_CTMI_R@HON, YL_CTMI_R@NBI, YL_CTMI_R@HAW, YL_CTMI_R@MAU, YL_CTMI_R@KAU; !no previous forecasts
+#YCT     =  YL_CTMI_R@HI, YL_CTMI_R@HON, YL_CTMI_R@NBI, YLCT_R@HAW, YLCT_R@MAU, YLCT_R@KAU; //no previous forecasts
+#YMN     =  YLMN_R@HI, YLMN_R@HON, YLMN_R@NBI, YLMN_R@HAW, YLMN_R@MAU, YLMN_R@KAU; //no previous forecasts
+#YTRADE  =  YL_TRADE_R@HI, YL_TRADE_R@HON, YL_TRADE_R@NBI, YL_TRADE_R@HAW, YL_TRADE_R@MAU, YL_TRADE_R@KAU; 
+#YTU     =  YL_TU_R@HI, YL_TU_R@HON, YL_TU_R@NBI, YL_TU_R@HAW, YL_TU_R@MAU, YL_TU_R@KAU; //no previous forecasts
+#YFIR    =  YL_FIR_R@HI, YL_FIR_R@HON, YL_FIR_R@NBI, YL_FIR_R@HAW, YL_FIR_R@MAU, YL_FIR_R@KAU; 
+#YAF     =  YLAF_R@HI, YLAF_R@HON, YLAF_R@NBI, YLAF_R@HAW, YLAF_R@MAU, YLAF_R@KAU;
+#YHC     =  YLHC_R@HI, YLHC_R@HON, YLHC_R@NBI, YLHC_R@HAW, YLHC_R@HAW, YLHC_R@MAU, YLHC_R@KAU; 
+#YELSE   =  YL_ELSE_R@HI, YL_ELSE_R@HON, YL_ELSE_R@NBI,YL_ELSE_R@HAW,YL_ELSE_R@MAU,YL_ELSE_R@KAU; 
+#YSV     =  YL_SV_R@HI, YL_SV_R@HON, YL_SV_R@NBI, YL_SV_R@HAW, YL_SV_R@MAU, YL_SV_R@KAU; 
+#YGVFD   =  YLGVFD_R@HI, YLGVFD_R@HON, YLGVFD_R@NBI, YLGVFD_R@HAW, YLGVFD_R@MAU, YLGVFD_R@KAU; 
+#YGVSL   =  YL_GVSL_R@HI, YPJ_GVSL_R@HI, YL_GVSL_R@HON, YPJ_GVSL_R@HON,  YL_GVSL_R@NBI, YPJ_GVSL_R@NBI, YL_GVSL_R@HAW, YL_GVSL_R@MAU, YL_GVSL_R@KAU; 
+#YGVML   =  YLGVML_R@HI, YLGVML_R@HON, YLGVML_R@NBI, YLGVML_R@HAW, YLGVML_R@MAU, YLGVML_R@KAU; 
+#YGV     =  YLGV_R@HI, YLGV_R@HON, YLGV_R@NBI, YLGV_R@HAW, YLGV_R@MAU, YLGV_R@KAU; 
+#YL      =  YL_R@HI, YL_R@HON, YL_R@NBI, YL_R@HAW, YL_R@MAU, YL_R@KAU; 
+#YDIV    =  YDIV_R@HI, YDIV_R@HON, YDIV_R@NBI, YDIV_R@HAW, YDIV_R@MAU, YDIV_R@KAU; 
+#YTRNSF  =  YTRNSF_R@HI, YTRNSF_R@HON, YTRNSF_R@NBI, YTRNSF_R@HAW, YTRNSF_R@MAU, YTRNSF_R@KAU; 
+#YSOC    =  YSOCSEC_R@HI, YSOCSEC_R@HON, YSOCSEC_R@NBI, YSOCSEC_R@HAW, YSOCSEC_R@MAU, YSOCSEC_R@KAU; 
+#Y       =  Y_R@HI, Y_R@HON, Y_R@NBI, Y_R@HAW, Y_R@MAU, Y_R@KAU; 
+
+#YNAG     =  YLAG@HI, YLAG@HON, YLAG@NBI, YLAG@HAW, YLAG@MAU, YLAG@KAU; 
+#YNCT     =  YL_CTMI@HI, YL_CTMI@HON, YL_CTMI@NBI, YLCT@HAW, YLCT@MAU, YLCT@KAU; //no previous forecasts
+#YNMN     =  YLMN@HI, YLMN@HON, YLMN@NBI, YLMN@HAW, YLMN@MAU, YLMN@KAU; //no previous forecasts
+#YNTRADE  =  YL_TRADE@HI, YL_TRADE@HON, YL_TRADE@NBI, YL_TRADE@HAW, YL_TRADE@MAU, YL_TRADE@KAU; 
+#YNTU     =  YL_TU@HI, YL_TU@HON, YL_TU@NBI, YL_TU@HAW, YL_TU@MAU, YL_TU@KAU; //no previous forecasts
+#YNFIR    =  YL_FIR@HI, YL_FIR@HON, YL_FIR@NBI, YL_FIR@HAW, YL_FIR@MAU, YL_FIR@KAU; 
+#YNAF     =  YLAF@HI, YLAF@HON, YLAF@NBI, YLAF@HAW, YLAF@MAU, YLAF@KAU; 
+#YNHC     =  YLHC@HI, YLHC@HON, YLHC@NBI, YLHC@HAW, YLHC@MAU, YLHC@KAU; 
+#YNELSE   =  YL_ELSE@HI, YL_ELSE@HON, YL_ELSE@NBI, YL_ELSE@HAW, YL_ELSE@MAU, YL_ELSE@KAU; 
+#YNSV     =  YL_SV@HI, YL_SV@HON, YL_SV@NBI, YL_SV@HAW, YL_SV@MAU, YL_SV@KAU; 
+#YNGVFD   =  YLGVFD@HI, YLGVFD@HON, YLGVFD@NBI, YLGVFD@HAW, YLGVFD@MAU, YLGVFD@KAU; 
+#YNGVSL   =  YL_GVSL@HI, YL_GVSL@HON, YL_GVSL@NBI, YL_GVSL@HAW, YL_GVSL@MAU, YL_GVSL@KAU; 
+#YNGVML   =  YLGVML@HI, YLGVML@HON, YLGVML@NBI, YLGVML@HAW, YLGVML@MAU, YLGVML@KAU; 
+#YNGV     =  YLGV@HI, YLGV@HON, YLGV@NBI, YLGV@HAW, YLGV@MAU, YLGV@KAU; 
+#YNL      =  YL@HI, YL@HON, YL@NBI, YL@HAW, YL@MAU, YL@KAU; 
+#YNDIV    =  YDIV@HI, YDIV@HON, YDIV@NBI, YDIV@HAW, YDIV@MAU, YDIV@KAU; 
+#YNTRNSF  =  YTRNSF@HI, YTRNSF@HON, YTRNSF@NBI, YTRNSF@HAW, YTRNSF@MAU, YTRNSF@KAU; 
+#YNSOC    =  YSOCSEC@HI, YSOCSEC@HON, YSOCSEC@NBI, YSOCSEC@HAW, YSOCSEC@MAU, YSOCSEC@KAU; 
+#YN       =  Y@HI, Y@HON, Y@NBI, Y@HAW, Y@MAU, Y@KAU; 
+
+#EAG     =  EAG@HI, EAG@HON, EAG@NBI, EAG@HAW, EAG@MAU, EAG@KAU; 
+#ECT     =  ECT@HI, ECT@HON, ECT@NBI, ECT@HAW, ECT@MAU, ECT@KAU; 
+#EMN     =  EMN@HI, EMN@HON, EMN@NBI, EMN@HAW, EMN@MAU, EMN@KAU;  //no previous forecasts
+#ETRADE  =  E_TRADE@HI, E_TRADE@HON, E_TRADE@NBI, E_TRADE@HAW, E_TRADE@MAU, E_TRADE@KAU; 
+#ETU     =  E_TU@HI, E_TU@HON, E_TU@NBI, E_TU@HAW, E_TU@MAU, E_TU@KAU;   //no previous forecasts
+#EFIR    =  E_FIR@HI, E_FIR@HON, E_FIR@NBI, E_FIR@HAW, E_FIR@MAU, E_FIR@KAU; 
+#EAF     =  EAF@HI, EAF@HON, EAF@NBI, EAF@HAW, EAF@MAU, EAF@KAU; 
+#EHC     =  EHC@HI, EHC@HON, EHC@NBI, EHC@HAW, EHC@MAU, EHC@KAU; 
+#EELSE   =  E_ELSE@HI, E_ELSE@HON, E_ELSE@NBI, E_ELSE@HAW, E_ELSE@MAU, E_ELSE@KAU; 
+#ESV     =  E_SV@HI, E_SV@HON, E_SV@NBI, E_SV@HAW, E_SV@MAU, E_SV@KAU; 
+#EGVFD   =  EGVFD@HI, EGVFD@HON, EGVFD@NBI, EGVFD@HAW, EGVFD@MAU, EGVFD@KAU; 
+#EGVSL   =  E_GVSL@HI, E_GVSL@HON, E_GVSL@NBI, E_GVSL@HAW, E_GVSL@MAU, E_GVSL@KAU; 
+#EGV     =  EGV@HI, EGV@HON, EGV@NBI, EGV@HAW, EGV@MAU, EGV@KAU; 
+#ENF     =  E_NF@HI, E_NF@HON, E_NF@NBI, E_NF@HAW, E_NF@MAU, E_NF@KAU; 
+#E       =  E@HI, E@HON, E@NBI, E@HAW, E@MAU, E@KAU; 
+
+#AG     =  EAG@HI, YLAG_R@HI, EAG@HON, YLAG_R@HON, EAG@NBI, YLAG_R@NBI, EAG@HAW,  EAG@MAU, EAG@KAU; 
+#CT     =  ECT@HI, YL_CTMI_R@HI,  ECT@HON, YL_CTMI_R@HON, ECT@NBI, YL_CTMI_R@NBI, ECT@HAW, ECT@MAU, YL_CTMI_R@MAU, ECT@KAU; 
+#MN     =  EMN@HI, YLMN_R@HI,  EMN@HON, YLMN_R@HON, EMN@NBI, YLMN_R@NBI, EMN@HAW, EMN@MAU, YLMN_R@MAU, EMN@KAU;  //no previous forecasts
+#TRADE  =  E_TRADE@HI, YL_TRADE_R@HI, E_TRADE@HON, YL_TRADE_R@HON, E_TRADE@NBI, YL_TRADE_R@NBI, E_TRADE@HAW, YL_TRADE_R@HAW, E_TRADE@MAU, YL_TRADE_R@MAU, E_TRADE@KAU, YL_TRADE_R@KAU; 
+#TU     =  E_TU@HI, YL_TU_R@HI, E_TU@HON, YL_TU_R@HON, E_TU@NBI, YL_TU_R@NBI, E_TU@HAW, YL_TU_R@HAW, E_TU@MAU, YL_TU_R@MAU, E_TU@KAU, YL_TU_R@KAU ;   //no previous forecasts
+#FIR    =  E_FIR@HI,YL_FIR_R@HI, E_FIR@HON, YL_FIR_R@HON, E_FIR@NBI, YL_FIR_R@NBI, E_FIR@HAW, YL_FIR_R@HAW, E_FIR@MAU, YL_FIR_R@MAU, E_FIR@KAU, YL_FIR_R@KAU; 
+#AF     =  EAF@HI, YLAF_R@HI, YPJAF_R@HI, EAF@HON, YLAF_R@HON, YPJAF_R@HON, EAF@NBI, YLAF_R@NBI, YPJAF_R@NBI, EAF@HAW, EAF@MAU, YLAF_R@MAU, EAF@KAU; 
+#HC     =  EHC@HI, YLHC_R@HI,  EHC@HON, YLHC_R@HON,  EHC@NBI, YLHC_R@NBI, EHC@HAW, YLHC_R@HAW, EHC@MAU, YLHC_R@MAU, EHC@KAU; 
+#ELSE     =  E_ELSE@HI, YL_ELSE_R@HI, YPJ_ELSE_R@HI, E_ELSE@HON, YL_ELSE_R@HON, YPJ_ELSE_R@HON, E_ELSE@NBI, YL_ELSE_R@NBI, YPJ_ELSE_R@NBI, E_ELSE@HAW, E_ELSE@MAU, YL_ELSE_R@MAU, E_ELSE@KAU; 
+//LIST ELSE   =  E_ELSE@HI, YL_ELSE_R@HI, E_ELSE@HON,  YL_ELSE_R@HON, E_ELSE@NBI,  YL_ELSE_R@NBI, E_ELSE@HAW, E_ELSE@MAU,  YL_ELSE_R@MAU, E_ELSE@KAU; 
+#SV     =  E_SV@HI, YL_SV_R@HI,  E_SV@HON, YL_SV_R@HON, E_SV@NBI, YL_SV_R@NBI, E_SV@HAW, E_SV@MAU, YL_SV_R@MAU, E_SV@KAU; 
+#GVFD   =  EGVFD@HI, YLGVFD_R@HI, EGVFD@HON, YLGVFD_R@HON, EGVFD@NBI, YLGVFD_R@NBI, EGVFD@HAW, YLGVFD_R@HAW, EGVFD@MAU, YLGVFD_R@MAU, EGVFD@KAU, YLGVFD_R@KAU; 
+#GVSL   =  E_GVSL@HI, YL_GVSL_R@HI,  YPJ_GVSL_R@HI, E_GVSL@HON, YL_GVSL_R@HON,  YPJ_GVSL_R@HON, E_GVSL@NBI, YL_GVSL_R@NBI,  YPJ_GVSL_R@NBI, E_GVSL@HAW, YL_GVSL_R@HAW, E_GVSL@MAU, YL_GVSL_R@MAU, E_GVSL@KAU, YL_GVSL_R@KAU; 
+#GV     =  EGV@HI, YLGV_R@HI, EGV@HON, YLGV_R@HON, EGV@NBI, YLGV_R@NBI, EGV@HAW, YLGV_R@HAW, EGV@MAU, YLGV_R@MAU, EGV@KAU, YLGV_R@KAU; 
+#YGVML   =  YLGVML_R@HI, YLGVML_R@HON, YLGVML_R@NBI, YLGVML_R@HAW, YLGVML_R@MAU, YLGVML_R@KAU; 
+#NF     =  E_NF@HI,  E_NF@HON, E_NF@NBI, E_NF@HAW, E_NF@MAU, E_NF@KAU; 
+#E       =  E@HI, E@HON, E@NBI, E@HAW, E@MAU, E@KAU; 
+#YL      =  YL_R@HI, YL_R@HON, YL_R@NBI, YL_R@HAW, YL_R@MAU, YL_R@KAU; 
+#YDIV    =  YDIV_R@HI, YDIV_R@HON, YDIV_R@NBI, YDIV_R@HAW, YDIV_R@MAU, YDIV_R@KAU; 
+#YTRNSF  =  YTRNSF_R@HI, YTRNSF_R@HON, YTRNSF_R@NBI, YTRNSF_R@HAW, YTRNSF_R@MAU, YTRNSF_R@KAU; 
+#YSOC    =  YSOCSEC_R@HI, YSOCSEC_R@HON, YSOCSEC_R@NBI, YSOCSEC_R@HAW, YSOCSEC_R@MAU, YSOCSEC_R@KAU; 
+#Y       =  Y_R@HI, Y_R@HON, Y_R@NBI, Y_R@HAW, Y_R@MAU, Y_R@KAU; 
+
+
+#ALLE  = #EAG, #ECT, #EMN, #ETRADE, #ETU, #EFIR, #EAF, #EHC, #EELSE, #ESV, #EGVFD, #EGVSL, #EGV, #ENF;
+#ALLY  = #YAG, #YCT, #YMN, #YTRADE, #YTU, #YFIR, #YAF, #YHC, #YELSE, #YSV, #YGVFD, #YGVSL, #YGVML, #YGV, #YL, #YDIV, #YTRNSF, #YSOC, #Y;
+#ALLYN = #YNAG, #YNCT, #YNMN, #YNTRADE, #YNTU, #YNFIR, #YNAF, #YNHC, #YNELSE, #YNSV, #YNGVFD, #YNGVSL, #YNGVML, #YNGV, #YNL, #YNDIV, #YNTRNSF, #YNSOC, #YN;
+
+#ALL_REAL = #EAG , #YAG , #ECT , #YCT , #EMN , #YMN , #ETRADE , #YTRADE , #ETU, #YTU, #EFIR , #YFIR , #EAF , #YAF , #EHC , #YHC , #EELSE , #YELSE , #ESV , #YSV , #EGVFD , #YGVFD , #EGVSL , #YGVSL ,  #YGVML , #EGV , #YGV  , #YL ,  #YDIV , #YTRNSF , #YSOC , #Y;
+
+#NEW      = #EMN, #YMN, #ETU, #YTU;
+#ALL      = #EAG, #YAG, #YNAG, #ECT, #YCT, #YNCT, #ETRADE, #YTRADE, #YNTRADE, #EFIR, #YFIR, #YNFIR, #EAF, #YAF, #YNAF, #EHC, #YHC, #YNHC, #EELSE, #YELSE, #YNELSE, #ESV, #YSV, #YNSV, #EGVFD, #YGVFD, #YNGVFD, #EGVSL, #YGVSL, #YNGVSL, #YGVML, #YNGVML, #EGV, #YGV, #YNGV, #YL, #YNL, #YDIV, #YNDIV, #YTRNSF, #YNTRNSF, #YSOC, #YNSOC, #Y, #YN;
+#ALL_NOHIST = #EMN, #YMN, #YNMN, #ETU, #YTU, #YNTU;
+
+#HECO1 = #YAG, #CT, #MN, #TRADE, #TU, #FIR, #AF, #HC, #ELSE, #SV, #GVFD, #GVSL, #GV, #YGVML, #NF, #YL, #YDIV, #YTRNSF, #YSOC, #Y;
+#HECO2 = #NF, #YL, #YDIV, #YTRNSF, #YSOC, #Y;
+
+#HECOQUP = E_NF@HI, YL_R@HI, YL@HI, Y_R@HI, Y@HI, YS_R@HI, YS@HI, NR@HI, VIS@HI, E_NF@HON, YL_R@HON, YL@HON,  Y_R@HON, Y@HON, NR@HON, VIS@HON, E_NF@MAU, YL_R@MAU, YL@MAU, Y_R@MAU, Y@MAU, NR@MAU, VIS@MAU, E_NF@HAW, YL_R@HAW, YL@HAW, Y_R@HAW, Y@HAW, NR@HAW, VIS@HAW, E_NF@KAU, YL_R@KAU, YL@KAU, Y_R@KAU, Y@KAU, NR@KAU, VIS@KAU;
+ 
+//*******************************************!!!!!!!!!!!!!!!!!!!!!!
+//  LISTS OF SERIES TO GRAPH (must be changed)!!!!!!!!!!!!!!!!!!!!!
+//*******************************************!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+//LIST GRAPHLST = #HECOQUP;
+//LIST GRAPHLST =  #HECO1; !-- for deliver to heco
+
+//LIST GRAPHLST =  #ESV, #EHC, #EELSE, #EAF, #E, #YL, #YDIV, #YSOC, #Y;
+//list graphlst = #EGVFD, #EGVSL, #ETRADE;
+//LIST GRAPHLST =  #ECT, #EAF;!, #ECT, #EMN, #YMN, #YNMN, #ETRADE, #YTRADE, #YNTRADE, #ETU, #EFIR, #EAF, #EHC, #EELSE, #ESV, #EGVFD, #EGVSL, #EGV; 
+#GRAPHLST =  #ALLE, #ALLY, #ALLYN; 
+
+
+if ('{%COMP3CNTYONLY}'=='Y');
+    goto COMP3CNTYSEC;
+END;
+
+
+
+//*******************************************
+//  GRAPH COMMAND
+//*******************************************
+//note the GRAPH_PATH parameter is assigned in the setpath_name.cmd file 
+
+#GRAPHLST2 = #GRAPHLST;
+     for string %CHCK_AVAIL = #GRAPHLST; /* TRANSLATE: Check that string type is ok */
+          %AVAIL3 = {%CHCK_AVAIL}.OLDSOLA;
+          if ('{%AVAIL3}'=='0');
+               {%CHCK_AVAIL}.OLDSOLA = M rep *;
+          END;  // END IF AVAIL3
+          
+          %AVAIL =  {%CHCK_AVAIL}.SOLA;
+          
+//          SET PER 2009 2014;  
+//          IF (#CHCK_AVAIL|.A == #CHCK_AVAIL|.A);
+//          TELL 'NO MISSING';  ASSIGN AVAIL2 INTEGER 1;
+//!          PRINT #CHCK_AVAIL|.A;
+//               ELSE TELL 'MISSING';  ASSIGN AVAIL2 INTEGER 0; 
+//          END;  ! END IF CHCK_AVAIL
+          
+//          IF ('#AVAIL' == '0' OR '#AVAIL2'=='0'); !NOT EXIST
+           if ('{%AVAIL}' == '0'); //NOT EXIST         
+           #GRAPHLST = #GRAPHLST - %CHCK_AVAIL;     
+          END;  // END IF AVAIL
+          time %STRT   %END;
+     END;
+//TARGET SKIPMISSING;
+//          SET PERIOD #STRT   #END;
+
+#UNAVAIL = #GRAPHLST2 - #GRAPHLST;
+tell ' ';
+tell '*********************************** ';
+tell 'REPORT: AVAILABLE TO PLOT = {%GRAPHLST}';
+tell 'REPORT: NOT AVAILABLE = {%UNAVAIL}';
+
+    option freq A;
+    if ('{%COMP_PREVFC}'=='Y');
+        if ('{%SAVEGRPH}'=='Y');
+        #GRPHPROC #GRAPHLST   FORECAST {%VRSN}A   HISTORY A   %COMPLABEL OLD{%VRSN}A   %CHG-IN-FORECAST {%VRSN}A%   Y %GRPHDIR;
+        else;
+        %GRPHPROC #GRAPHLST   FORECAST {%VRSN}A   HISTORY A   %COMPLABEL OLD{%VRSN}A   %CHG-IN-FORECAST {%VRSN}A%;
+        END;
+    else;
+        if ('{%SAVEGRPH}'=='Y');
+        #GRPHPROC #GRAPHLST   FORECAST {%VRSN}A   HISTORY A   Not_available  three     %CHG-IN-FORECAST {%VRSN}A%   Y %GRPHDIR;
+        else;
+        %GRPHPROC #GRAPHLST   FORECAST {%VRSN}A   HISTORY A   Not_available  three     %CHG-IN-FORECAST {%VRSN}A%;
+        END;
+    END;
+
+delete WORK:*.OLDSOLA;
+
+
+//*******************************************
+//  PRINT RESULTS
+//*******************************************
+
+if ('{%PRINT_RESULT}'=='Y');
+
+    time 2018 2025;
+    option freq A;
+
+        if ('{%COMP_PREVFC}'=='Y');
+            for string %PRINTLIST = #GRAPHLST; /* TRANSLATE: Check that string type is ok */
+            prt {%PRINTLIST}.{%VRSN}A, {%PRINTLIST}.{%VRSN}A%, {%PRINTLIST}.OLD{%VRSN}A, {%PRINTLIST}.OLD{%VRSN}A%;
+            END;
+        else;
+            for string %PRINTLIST = #GRAPHLST; /* TRANSLATE: Check that string type is ok */
+            prt {%PRINTLIST}.{%VRSN}A, {%PRINTLIST}.{%VRSN}A%;
+            END;
+END;
+if ('{%SPAN}'=='S');
+    time %SHORT_STRT  %SHORT_END;
+else;
+    time %SHORT_STRT  %SHORT_END;
+END; // END IF ELSE
+
+END;
+
+
+//*******************************************
+//  COMPARE 3 COUNTIES
+//*******************************************
+
+target COMP3CNTYSEC;
+
+#jj = null;
+for string %myvar = #GRAPHLST; /* TRANSLATE: Check that string type is ok */ 
+  %prefix = piece('{%myvar}',1,SEARCH('{%myvar}','@')-1); 
+  #jj = #jj, %prefix; 
+end;
+#kk = #jj[1];
+if (#jj[0]>1) ; 
+  for val %num = 2 to #jj[0]; /* TRANSLATE: Check that val type is ok (could be date) */ 
+    %numlag = {%num}-1; 
+    if ('{%jj}[{%num}]'<>'{%jj}[{%numlag}]') ; 
+      #kk = #kk, #jj[%num]; 
+    end;  
+  end; 
+end;
+//>>>>>>>>>>>>>>> should shorten above commands 
+
+if('{%COMP3CNTY}'=='Y');
+    for string %MYSER = #kk; /* TRANSLATE: Check that string type is ok */
+        for string %CNTY = HI,HON,NBI,HAW,MAU,KAU; /* TRANSLATE: Check that string type is ok */ //CHECK AVAILABILITY
+            %AVAIL = {%MYSER}@{%CNTY}.{%VRSN}A;
+            if ('{%AVAIL}'=='0');
+                {%MYSER}@{%CNTY}.{%VRSN}A  = 0 rep *;
+                {%MYSER}@{%CNTY}.{%VRSN}A% = 0 rep *;
+               %MISSLAB ={%CNTY} LITERAL ' (missing)';
+            else;
+                %MISSLAB ={%CNTY} LITERAL '';
+            END;
+        END;
+        %DRAFT_TITLE = {%MYSER}@HI!A LABEL;
+        %TITLE = STRIP('{%DRAFT_TITLE}','STATEWIDE');
+        if ('{%SAVEGRPH}'=='Y');
+            %DEST = 'DESTINATION=FILE  FILE={%GRPHDIR}';
+            #GRPHPROCCOMPL TITLE = '{%TITLE}' SUBTITLE='HI-HON-NBI Levels Comparison' {%DEST}{%MYSER}@HHN.EMF   {%MYSER}@HI.{%VRSN}A    label='{%MYSER}|@HI.{%VRSN}|A  ',  {%MYSER}@HON.{%VRSN}A   label='HON',    {%MYSER}@NBI.{%VRSN}A   label='NBI';
+            
+            #GRPHPROCCOMPL TITLE = '{%TITLE}' SUBTITLE='HI-HON-NBI % Chg Comparison' {%DEST}{%MYSER}@HHNGR.EMF {%MYSER}@HI.{%VRSN}A%  label='{%MYSER}|@HI.{%VRSN}|A%'  , {%MYSER}@HON.{%VRSN}A% label='HON',    {%MYSER}@NBI.{%VRSN}A% label='NBI';
+            
+            #GRPHPROCCOMPL TITLE = '{%TITLE}' SUBTITLE='County Levels Comparison' {%DEST}{%MYSER}@MHK.EMF   {%MYSER}@MAU.{%VRSN}A   label='{%MYSER}|@MAU.{%VRSN}|A  ',  {%MYSER}@HAW.{%VRSN}A   label='HAW', {%MYSER}@KAU.{%VRSN}A   label='KAU';
+            
+            #GRPHPROCCOMPL TITLE = '{%TITLE}' SUBTITLE='County % Chg Comparison' {%DEST}{%MYSER}@MHKGR.EMF {%MYSER}@MAU.{%VRSN}A% label='{%MYSER}|@MAU.{%VRSN}|A%'  , {%MYSER}@HAW.{%VRSN}A% label='HAW', {%MYSER}@KAU.{%VRSN}A% label='KAU';
+
+            time 2019 2019;
+            %mauhaw = {%MYSER}@mau.sola/{%MYSER}@haw.sola; 
+            %maukau = {%MYSER}@mau.sola/{%MYSER}@kau.sola; 
+            time %SHORT_STRT  %SHORT_END;
+            #GRPHPROCCOMPL TITLE = '{%TITLE}' SUBTITLE='County Scaled Comparison' {%DEST}{%MYSER}@MHKSC.EMF {%MYSER}@MAU.{%VRSN}A label='{%MYSER}|@MAU.{%VRSN}|A'  , {%mauhaw}*{%MYSER}@HAW.{%VRSN}A label='HAW', {%maukau}*{%MYSER}@KAU.{%VRSN}A label='KAU';
+
+
+        else;
+        
+            %GRPHPROCCOMPL TITLE = '{%TITLE}' SUBTITLE='Levels Comparison' {%MYSER}@HI.{%VRSN}A    label='{%MYSER}|@HI.{%VRSN}|A{%MISSLABHI}  ',  {%MYSER}@HON.{%VRSN}A   label='HON{%MISSLABHON}',    {%MYSER}@NBI.{%VRSN}A   label='NBI{%MISSLABNBI}';
+            #GRPHPROCCOMPL TITLE = '{%TITLE}' SUBTITLE='% Comparison' {%MYSER}@HI.{%VRSN}A%  label='{%MYSER}|@HI.{%VRSN}|A%{%MISSLABHI}  ', {%MYSER}@HON.{%VRSN}A% label='HON{%MISSLABHON}',    {%MYSER}@NBI.{%VRSN}A% label='NBI{%MISSLABNBI}';
+            #GRPHPROCCOMPL TITLE = '{%TITLE}' SUBTITLE='Levels Comparison' {%MYSER}@MAU.{%VRSN}A   label='{%MYSER}|@MAU.{%VRSN}|A{%MISSLABMAU}  ',  {%MYSER}@HAW.{%VRSN}A   label='HAW{%MISSLABHAW}', {%MYSER}@KAU.{%VRSN}A   label='KAU{%MISSLABKAU}';
+            #GRPHPROCCOMPL TITLE = '{%TITLE}' SUBTITLE='% Comparison' {%MYSER}@MAU.{%VRSN}A% label='{%MYSER}|@MAU.{%VRSN}|A%{%MISSLABMAU}  ', {%MYSER}@HAW.{%VRSN}A% label='HAW{%MISSLABHAW}', {%MYSER}@KAU.{%VRSN}A% label='KAU{%MISSLABKAU}';
+        END;
+    END;
+END;
+
+
+//*******************************************
+//  GRAPH CONVERSION COMMAND
+//*******************************************
+
+if ('{%SAVEGRPH}'=='Y');
+
+    //convert to eps
+    sys 'C:\WMF2EPS\WMF2EPS.EXE  {%GRPHDIR}|*.EMF';
+    
+    //convert to pdf
+    %CURRENT_DIR = FILE DIRECTORY; 
+        option FILE DIRECTORY '{%GRPHDIR}';
+        sys 'dir *.eps /B /on > epslist.txt';
+    //SYSTEM  'C:\"Program Files (x86)"\gs\gs9.18\bin\gswin32c.exe -q -dSAFER -dNOPAUSE -dBATCH -dAutoRotatePages=/None -sOutputFile=graQ_#SPAN|#GRPH_FREQ|.pdf  -dEPSFitPage -sDEVICE=pdfwrite -c  "<</Pagesize [595 842] /Orientation 3>>  setpagedevice" 90 rotate 0 -595 translate .setpdfwrite -f  @epslist.txt';
+    sys  'C:\gs\gs8.54\bin\gswin32c.exe -q -dSAFER -dNOPAUSE -dBATCH -dAutoRotatePages=/None -sOutputFile=graQ_{%SPAN}|{%GRPH_FREQ}|.pdf  -dEPSFitPage -sDEVICE=pdfwrite -c  "<</Pagesize [595 842] /Orientation 3>>  setpagedevice" 90 rotate 0 -595 translate .setpdfwrite -f  @epslist.txt';
+     
+    sys 'COPY C:\WAREM32\$LASTCMD.OUT  {%GRPHDIR}|forecast.out';
+    sys 'DEL *.EMF, *.EPS';          //DELETE EXISTING EMF AND EPS FILES
+
+    //return initial values
+    option FILE DIRECTORY %CURRENT_DIR;
+    option SCREEN HOLD %CURRENT_SCRHOLD;
+
+END;
+
+//*******************************************
+
+if ('{%RUN_TABLECMD}'=='Y');
+run tabHIOUTLOOK.CMD;
+END;
+
+//*******************************************
+
+tell 'REPORT: SPAN={%SPAN}, COMP_PREVFC={%COMP_PREVFC}, COMPBNK={%COMPBNK}, SAVEGRPH={%SAVEGRPH}, DATAFROMSOLBNK={%DATAFROMSOLBNK}, RUN_TABLECMD={%RUN_TABLECMD}, graph_directory = {%GRPHDIR}';
+tell 'REPORT: END OF graCA.CMD';
+
