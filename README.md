@@ -14,4 +14,8 @@ AREMOS alternative
   
 ## Status
   
+06/14/2020
+The code for county allocation is essentially complete. There are some small discrepancies between AREMOS and GEKKO growth in 2020 and 2021, but those are likely due to some rounding in the addfactor.
+
+06/10/2020
 The command file for the US forecast (USSOL) is essentially complete: it showcases all important steps of the data workflow, including data import/export, data modifications (addfactoring, working with different frequencies, etc.), and generation of figures. The codebase does not illustrate any simultaneous equation modeling yet.
