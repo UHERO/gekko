@@ -1,3 +1,8 @@
+Provide an ability to open gekko data files (gbk banks) in R. The RProtoBuf package may provide the necessary tools, but I could not make it work. (https://cran.r-project.org/web/packages/RProtoBuf/index.html)
+
+
+
+
 IMPLEMENT INTERPOLATION METHODS AVAILABLE IN AREMOS
 ADVANCE CURSOR TO NEXT COMMAND LINE BY HITTING ENTER/RETURN (COULD BE AN OPTION)
 YEAR OVER YEAR GROWTH
