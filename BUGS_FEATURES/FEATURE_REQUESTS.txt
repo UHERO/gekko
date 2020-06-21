@@ -1,3 +1,5 @@
+When producing a large number of plots (visualizing individual series, diagnostics, etc) each plot gets saved separately. I am using the pdf format and when all plots are done, I manually combine them into a single pdf where I can scroll through the plots. It would be convenient if the plot function would allow plots to be combined into a single pdf.
+
 Provide an ability to open gekko data files (gbk banks) in R. The RProtoBuf package may provide the necessary tools, but I could not make it work. (https://cran.r-project.org/web/packages/RProtoBuf/index.html)
 
 

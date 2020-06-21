@@ -1,0 +1,633 @@
+// UDESTÅR fortsat at slippe af med AREMOS log-formuleringer i enkelte relationer jf. logtyd, logtyo og logtye
+
+restart;
+mode data;
+open parametre;
+
+
+pipe g:\Modelenheden\MONA\Gekko\model\byg_model\feb2018\model\mona_feb18gek.frm ;
+
+
+TELL '//###FINANSIEL DELMODEL';
+TELL 'FRML _DJ_D__ ABZK=ABZK[-1]*(KURSS/KURSS[-1])+(ABZZ-ABZZ[-1]) ;';
+TELL 'FRML _DJ_D__ ABZZ=ABZZ[-1]+.25*DALO-DIFF((ALOP+ALOL)) ;';
+TELL 'FRML _DJ_D__ BBZZ=UBZZ-FBZZ-PBZZ+ZBZR ;';
+TELL 'FRML _DJ_D__ BCUN=({#bcun_param[1].format('.00000')})*(.001)*(PDB-PCUN+PDSB+LDEB) ;';
+TELL 'FRML _DJ_D__ BLOP=-(-({%ma3.format('.00000')}) 
+                        +(-({%mb3.format('.000')})*IDP
+						-(-({%mb3.format('.000')})+({%c2.format('.0')})-({%mc5.format('.000000')}))*ILO
+						  +({%c2.format('.00000')})*IBZ
+						  -({%mc5.format('.00000')})*(IBODEM+DK)
+						  +({%ggg3.format('.00000')})*FYTR)*(1-({%p1.format('.00000')}))
+						  +({%h3.format('.00000')})*SEA1-({%mi3.format('.00000')})*SEA2+({%j3.format('.00000')})*SEA3
+						  +({%fff3.format('.00000')})*WW/PYTR
+						  -({%mkkk3.format('.00000')})*AIPB/PYTR
+						  +({%lll3.format('.00000')})*AIHB/PYTR
+						  +({%p1.format('.00000')})*(-BLOP[-1]-({%fff3.format('.00000')})*WW[-1]
+						  +({%mkkk3.format('.00000')})*AIPB[-1]-({%lll3.format('.00000')})*AIHB[-1])/PYTR)*PYTR ;';
+TELL 'FRML _DJ_D__ BQQF=BVRF+FLOB ;';
+TELL 'FRML _DJ_D__ BQQN=BWWB-BBZZ-BVRF ;';
+TELL 'FRML _DJ_D__ BWWB=BQQB-(BQQQ+BLOP+BLOL+BCUN)+(PDB-PCUN+PDSB+LDEB+PLOB) ;';
+TELL 'FRML _DJ_D__ BZGK=BZGK[-1]*(KURSG/KURSG[-1])+(ZBZG-ZBZG[-1]) ;';
+TELL 'FRML _DJ_D__ BZLK=BZLK[-1]*(KURSG/KURSG[-1])+(ZBZL-ZBZL[-1]) ;';
+TELL 'FRML _DJ_D__ DALO=TPPK-TYPK+TIPK_H-SDR*KSDR ;';
+TELL 'FRML _DJ_D__ FBZK=FBZK[-1]*(KURSG/KURSG[-1])+(FBZZ-FBZZ[-1]) ;';
+TELL 'FRML _DJ_D__ FBZZ=FBZZ[-1]+DIFF((FQQF)) ;';
+TELL 'FRML _DJ_D__ FLOB=.08*(BLOP+.5*BQQF)-PLOB ;';
+TELL 'FRML _DJ_D__ FLOGK=FLOGK[-1]*(EFKRKS[-1]/EFKRKS)+DIFF((FLOG)) ;';
+TELL 'FRML _DJ_D__ FLOLK=FLOLK[-1]*(EFKRKS[-1]/EFKRKS)+DIFF((FLOL)) ;';
+TELL 'FRML _DJ_D__ FLP=-(-(({%a1.format('.00000')})- ({%ma3.format('.00000')})+({%z1.format('.00000')}))
+                      +(-({%mb5.format('.00000')})*IDP
+					-({%mc5.format('.00000')})*ILO
+					-({%mc4.format('.00000')})*IBZ
+					-(-({%mb5.format('.00000')})-({%mc4.format('.00000')})-({%mc5.format('.00000')}))*(IBODEM+DK)
+					-({%mggg5.format('.00000')})*FYTR)*(1-({%p1.format('.00000')}))
+					-(-({%mh1.format('.00000')})+ ({%h3.format('.00000')})+({%z61.format('.00000')}))*SEA1
+					-(-({%mi1.format('.00000')})-({%mi3.format('.00000')})+({%z62.format('.00000')}))*SEA2
+					-(-({%mj1.format('.00000')})+ ({%j3.format('.00000')})+({%z63.format('.00000')}))*SEA3
+					+(1-({%fff1.format('.00000')})-({%fff3.format('.00000')})-({%z21.format('.00000')}))*WW/PYTR
+					+(-1-({%kkk1.format('.00000')})+({%mkkk3.format('.00000')})+({%mz7.format('.00000')}))*AIPB/PYTR
+					+({%lll5.format('.00000')})*AIHB/PYTR
+					+({%p1.format('.00000')})*(-FLP[-1]-(1-({%fff1.format('.00000')})-({%fff3.format('.00000')})-({%z21.format('.00000')}))*WW[-1]
+					-(-1-({%kkk1.format('.00000')})+({%mkkk3.format('.00000')})+({%mz7.format('.00000')}))*AIPB[-1]-({%lll5.format('.00000')})*AIHB[-1])/PYTR)*PYTR ;';
+TELL 'FRML _DJ_D__ FLPK=FLPK[-1]*(EFKRKS[-1]/EFKRKS)+(FLP-FLP[-1]) ;';
+TELL 'FRML _DJ_D__ FQQF=FQQF[-1]-.25*ENL ;';
+TELL 'FRML _DJ_D__ FQQFK=((FQQFK[-1]-FBZK[-1])*(EFKRKS[-1]/EFKRKS)+DIFF((FQQF-FBZZ)))+FBZK  ;';
+TELL 'FRML _DJ_D__ GBZK=GBZK[-1]*(KURSS/KURSS[-1])+(GBZZ-GBZZ[-1])  ;';
+TELL 'FRML _DJ_D__ GLON=GQQG-GQQQ-GBZZ-GAS+ZBZG+FLOG-GLOP-GLOF  ;';
+TELL 'FRML _DJ_D__ GQQG=GQQG[-1]+.25*TFON-DIFF((LQQL+OBZZ+OASF))  ;';
+TELL 'FRML _DJ_D__ KBZR=KBZR[-1]*(KURSR/KURSR[-1])+(ZBZR-ZBZR[-1])  ;';
+TELL 'FRML _DJ_D__ LBZK=LBZK[-1]*(KURSS/KURSS[-1])+(LBZZ-LBZZ[-1])  ;';
+TELL 'FRML _DJ_D__ LQQL=LBZZ+LDEB+LQQQ-BLOL-ZBZL-FLOL  ;';
+TELL 'FRML _DJ_D__ NBZK=NBZK[-1]*(KURSS/KURSS[-1])+(NBZZ-NBZZ[-1])  ;';
+TELL 'FRML _DJ_D__ NVRF=-FQQF-BVRF-GLOF+FBZZ+FLP-OASF+FLOG+FLOL  ;';
+TELL 'FRML _DJ_D__ OBZK=OBZK[-1]*(KURSS/KURSS[-1])+(OBZZ-OBZZ[-1])  ;';
+TELL 'FRML _DJ_D__ OWPK=(({#owpk_param[1].format('.00000')})*DLOG(QQ)+({#owpk_param[2].format('.00000')})*DLOG(IBZ))*WPK_H[-1]  ;';
+TELL 'FRML _DJ_D__ OWPP=(({#owpk_param[1].format('.00000')})*DLOG(QQ)+({#owpk_param[2].format('.00000')})*DLOG(IBZ))*WPP_H[-1]  ;';
+TELL 'FRML _DJ_D__ PBZK=PBZK[-1]*(KURSS/KURSS[-1])+(PBZZ-PBZZ[-1])  ;';
+TELL 'FRML _DJ_D__ PBZZ=( ({%z1.format('.00000')})
+                         +(-({ %mb2.format('.00000') })*IDP
+						 +({%c2.format('.00000')})*ILO
+                         -(-({%mb2.format('.00000')})+({%c2.format('.00000')}) - ({%mc4.format('.00000')}))*IBZ
+						 -({%mc4.format('.00000')})*(IBODEM+DK)
+						 -({%mz6.format('.00000')})*FYTR)*(1-({%p1.format('.00000')}))
+						 +({%z61.format('.00000')})*SEA1
+						 +({%z62.format('.00000')})*SEA2
+						 +({%z63.format('.00000')})*SEA3
+						 +({%z21.format('.00000')})*WW/PYTR-({%mz7.format('.00000')})*AIPB/PYTR
+						 +(-1-({%lll1.format('.00000')})-({%lll3.format('.00000')})-({%lll5.format('.00000')}))*AIHB/PYTR
+						 +({%p1.format('.00000')})*(PBZZ[-1]-ZBZR[-1]-({%z21.format('.00000')})*WW[-1]
+						 +({%mz7.format('.00000')})*AIPB[-1]
+						 -(-1-({%lll1.format('.00000')})-({%lll3.format('.00000')})-({%lll5.format('.00000')}))*AIHB[-1])/PYTR)*PYTR+ZBZR ;';
+TELL 'FRML _DJ_D__ PLOB=.08*(BLOP+.5*BQQF) ;';
+TELL 'FRML _DJ_D__ TPPK=YW*BTPPK ;';
+TELL 'FRML _DJ_D__ TYPK=WPK_H[-1]*BTYPK ;';
+TELL 'FRML _DJ_D__ UBZZ=ZBZG+ZBZL-GBZZ-LBZZ-OBZZ-NBZZ-HBZZ-ABZZ-SBZZ-RBZZ ;';
+TELL 'FRML _DJ_D__ WPK_H=WPK_H[-1]+DALO/4+OWPK/4 ;';
+TELL 'FRML _DJ_D__ WPP_H=WPP_H[-1]+(1-0.7)*TFNF_H/4+OWPP/4 ;';
+TELL 'FRML _DJ_D__ WP_H=WPK_H+WPP_H ;';
+TELL 'FRML _DJ_D__ WW=WWX+AIPB+AIHB ;';
+TELL 'FRML _DJ_D__ WWX=WWX[-1]+.25*(TFPN-DALO)-DIFF((RBZZ+HBZZ+SBZZ+PDSB+PLOB+BQQB-ALOP-GLOP)) ;';
+TELL 'FRML _DJ_D__ ZBZG=ZBZG[-1]-(.25*TFON-DIFF((LQQL+OBZZ+OASF)))+DIFF((GQQQ+GBZZ)) ;';
+TELL '//SE HER: Det er uklart, hvordan paramtrene i denne fremkommer - spørg TSH';
+TELL 'FRML _DJ_D__ ZBZR=-((({%zbzr_1.format('.00000')})*(ILO-IBZ)
+                         -({%zbzr_2.format('.00000')})*SEA1+({%zbzr_3.format('.00000')})*SEA2+({%zbzr_4.format('.00000')})*SEA3+({%zbzr_5.format('.00000')}))*PYTR
+						 -({%mz7.format('.00000')})*AIPB
+                         +(-1-({%lll1.format('.00000')})-({%lll3.format('.00000')})-({%lll5.format('.00000')}))*AIHB
+						 +({%p1.format('.00000')})*(-ZBZR[-1]+({%mz7.format('.00000')})*AIPB[-1]-(-1-({%lll1.format('.00000')})-({%lll3.format('.00000')})-({%lll5.format('.00000')}))*AIHB[-1])) ;';
+TELL '// Renter, kurser og afkast';
+TELL 'FRML _DJ_D__ COQQ=LOG(QQ)-(({#coqq_param[1].format('.00000')})*LOG(YFBX+PYFE*FYFE-YWBY)+({#coqq_param[2].format('.00000')})*LOG(IBZ)+({#coqq_param[3].format('.00000')})) ;';
+TELL 'FRML _DJ_D__ COIDP=IDP-(({#coidp_param[1].format('.00000')})*IBZ+({#coidp_param[2].format('.00000')})*(1-DRAD)*IMM
+                               +({#coidp_param[3].format('.00000')})*DRAD*IDI+({#coidp_param[4].format('.00000')})*(1-DRAD)*IDI
+							   +({#coidp_param[5].format('.00000')})*DRAD+({#coidp_param[6].format('.00000')})) ;';
+TELL 'FRML _DJ_D__ COILO=ILO-(({#coilo_param[1].format('.00000')})*IBZ+({#coilo_param[2].format('.00000')})*(1-DRAL)*IMM
+                             +({#coilo_param[3].format('.00000')})*DRAL*IDI+({#coilo_param[4].format('.00000')})*(1-DRAL)*IDI
+							 +({#coilo_param[5].format('.00000')})*DRAL+({#coilo_param[6].format('.00000')})*RENTEML
+							 +({#coilo_param[7].format('.00000')})*OMKOSTLED +({#coilo_param[8].format('.00000')})) ;';
+TELL 'FRML _DJ_D__ DIFF(IDP)= ({#idp_param[1].format('.00000')})*DIFF(IDP[-1])+({#idp_param[2].format('.00000')})*DIFF((IMM))
+                             +({#idp_param[3].format('.00000')})*(COIDP[-1])+({#idp_param[4].format('.00000')});';
+TELL 'FRML _DJ_D__ DIFF(ILO)=({#ilo_param[1].format('.00000')})*DIFF(ILO[-1])+({#ilo_param[2].format('.00000')})*DIFF((IMM))
+                             +({#ilo_param[3].format('.00000')})*(COILO[-1])+({#ilo_param[4].format('.00000')}) ;';
+TELL 'FRML _DJ_D__ IUDLG=KVDEM*IBODEM+(1-KVDEM)*IUSD ;';
+TELL 'FRML _DJ_D__ KURSG=KURSG[-1]*((1+IBZ)/(1+IBZ[-1]))**VARG[-1]*(1-AFSG)+AFSG ;';
+TELL 'FRML _DJ_D__ KURSR=KURSR[-1]*((1+IBZ)/(1+IBZ[-1]))**VARR[-1]*(1-AFSR)+AFSR ;';
+TELL 'FRML _DJ_D__ KURSS=KURSS[-1]*(BZGK+BZLK+KBZR-FBZK-DIFF((ZBZG+ZBZL+ZBZR-FBZZ)))/(BZGK[-1]+BZLK[-1]+KBZR[-1]-FBZK[-1]) ;';
+TELL 'FRML _GJRD   DLOG(QQ)=(({#qq_param[1].format('.00000')})*DLOG(QQ[-1])+({#qq_param[2].format('.00000')})*DIFF(IBZ)
+                            +({#qq_param[3].format('.00000')})*(COQQ[-1])+({#qq_param[4].format('.00000')})) ;';
+TELL 'FRML _DJ_D__ OMKOSTLED=QFTJ*LO/(PDB-PCUN+PDSB+LDEB+BLOP+BLOL) ;';
+TELL 'FRML _DJ_D__ RENTE=IBZ*(1-TSUIH) ;';
+TELL 'FRML _DJ_D__ PDB=(({%a1.format('.00000')})
+                        +((({%mb5.format('.00000')})+({%mb2.format('.00000')})+({%mb3.format('.00000')}))*IDP
+						-({%mb3.format('.00000')})*ILO-({%mb2.format('.00000')})*IBZ-({%mb5.format('.00000')})*(IBODEM+DK)
+						-(({%ggg3.format('.00000')})-({%mggg5.format('.00000')})-({%mz6.format('.00000')}))*FYTR)*(1-({%p1.format('.00000')}))
+						-({%mh1.format('.00000')})*SEA1-({%mi1.format('.00000')})*SEA2-({%mj1.format('.00000')})*SEA3
+						+({%fff1.format('.00000')})*WW/PYTR
+						+({%kkk1.format('.00000')})*AIPB/PYTR
+						+({%lll1.format('.00000')})*AIHB/PYTR
+						+({%p1.format('.00000')})*(PDB[-1]-({%fff1.format('.00000')})*WW[-1]-({%kkk1.format('.00000')})*AIPB[-1]-({%lll1.format('.00000')})*AIHB[-1])/PYTR)*PYTR ;';
+
+TELL '// Husholdninger';
+TELL 'FRML _GJ_D   DLOG(WS_Z_H)=DLOG(QQ) ;';
+TELL 'FRML _GJ_D   DLOG(WH_H)=DLOG(KP*AIH) ;';
+TELL 'FRML _SJRD   DLOG(WQH_H_Z)=({#wqh_h_z_param[1].format('.00000')})*LOG(WQH_H_Z[-1]/WH_H[-1])+({#wqh_h_z_param[2].format('.00000')})*DLOG(WH_H)+({#wqh_h_z_param[3].format('.00000')}) ;';
+TELL 'FRML _GJ_D   DLOG(WQQ_H_Z)=DLOG(WQH_H_Z) ;';
+TELL 'FRML _GJ_D   DLOG(WSQ_Z_H)=DLOG(WS_Z_H) ;';
+TELL 'FRML _DJ_D__ DIFF(TII_H_Z) = ({#tii_h_z_param[1].format('.00000')})*TII_H_Z[-1]+({#tii_h_z_param[2].format('.00000')})*IBZ[-1]*WQ_H_Z[-2]
+                                   +({#tii_h_z_param[3].format('.00000')})*DIFF(IBZ*WQ_H_Z[-1])+({#tii_h_z_param[4].format('.00000')});';
+TELL 'FRML _DJ_D__ DIFF(TII_Z_H) = ({#tii_z_h_param[1].format('.00000')})*TII_Z_H[-1]+({#tii_z_h_param[2].format('.00000')})*(IBZ[-1]+IDP[-1])/2*WQ_Z_H[-2]
+                                   +({#tii_z_h_param[3].format('.00000')})*DIFF(IDP*WQ_Z_H[-1])+({#tii_z_h_param[4].format('.00000')}) ;';
+TELL 'FRML _DJ_D__ TIPK_H=(({#tipk_h_param[1].format('.00000')})*IBODEM)*WPK_H[-1] ;';
+TELL 'FRML _DJ_D__ TIU_H=BTIU_H*WS_Z_H[-1] ;';
+TELL 'FRML _DJ_D__ WCP=0.9*WSQ_Z_H+0.8*WH_H+0.2*0.6*WP_H+WQ_Z_H-WQ_H_Z ;';
+TELL 'FRML _DJ_D__ WQ_H_Z=WQQ_H_Z+WQH_H_Z ;';
+TELL 'FRML _DJ_D__ WQ_Z_H=WQ_Z_H[-1]+TFNF_H*0.7/4 ;';
+TELL 'FRML _DJ_D__ YDMAS=YW-SBID+TYE+TYD+TYO+TYP+TYPI-ASKAT-ROF-SDU ;';
+TELL 'FRML _DJ_D__ YD_H=YW-SBID+TYE+TYD+TYO+TYP-ASKAT-ROF-SDU+TII_Z_H+TIU_H-TII_H_Z-TPPK+TYPK-(1-KSDR)*SDR-DDSK-SDV+YDQ_H ;';
+TELL '';
+TELL '//###FORDRINGSERHVERVELSER';
+TELL 'FRML _I      PIND=TYD+TYE+TYO+TYP+TYPI+(TKON-TIOV)+SISUB+JTEN_+TKEN-SIE-TION+TIEN+Y-IOV ;';
+TELL 'FRML _I      PUDG=SIAF+SBID+SD+TOI+PCP*FCP+PIPB*FIPB+FIPM*PIPM+PIH*FIH+PILVG*FILVG+FIT*PIT ;';
+TELL 'FRML _I      YDP=PIND-PUDG+PCP*FCP+PIPB*FIPB+FIPM*PIPM+PIH*FIH+PILVG*FILVG+FIT*PIT+SAK-TKON-TKEN ;';
+TELL 'FRML _I      TFNF_H=TFNX_H+DIFF(WQ_H_Z)*4 ;';
+TELL 'FRML _D      TFNX_H=YD_H-PCP*FCP-I_H+TKN_H ;';
+TELL 'FRML _I      TFON=OIND-OUDG ;';
+TELL 'FRML _I      TFPN=PIND-PUDG ;';
+TELL 'FRML _I      OUDG=TYD+TYE+TYO+TYP+TYPI+TENOU+(TKON-TIOV)+SISUB+PCO*FCO+PIO*FIO ;';
+TELL 'FRML _I      OIND=SIAF+SBID+SD+TOI+TENOI+TION+IOV ;';
+TELL 'FRML _I      TEN=TENOI-TENOU-SIE+JTEN_+TKEN ;';
+TELL 'FRML _DJ_D__ TIEN=-IBZ*(KURSG/KURSG[-1])*FBZK[-1]-(KVUSD[-2]*IUSD[-1]+KVDEM[-2]*IBODEM[-1])*((FQQFK[-1]-FBZK[-1])*(EFKRKS/EFKRKS[-1])**.5) ;';
+TELL 'FRML _I      TFEN=E-M+TIEN+TEN ;';
+TELL 'FRML _I      ENL=TFEN+KOBAL-TKEN ;';
+TELL '';
+TELL '//###PRIVAT FORBRUG';
+TELL 'FRML _DJ_D__ ARBLOS2=(0.5*((DAGL-DAGP)*(1-BSDA)*(UL/(QO+QP+UL))/DAGL-(DAGL[-2]-DAGP[-2])*(1-BSDA[-2])*(UL[-2]/(QO[-2]+QP[-2]+UL[-2]))/DAGL[-2])) ;';
+TELL 'FRML _DJ_D__ DLOGPCPT =DLOG(PCP)-(({#pcpt_param[1].format('.00000')})*TTTT+({#pcpt_param[2].format('.00000')})) ;';
+TELL 'FRML _I      FCQ=(FCP*PCP_LA-FCB*PCB_LA-FCH*PCH_LA-FMT*PMT_LA+FET*PET_LA)/PCQ_LA ;';
+TELL 'FRML _SJRD__ COFCB=LOG(FCB)-(({#cofcb_param[1].format('.00000')})*LOG(FCP)
+                                 +({#cofcb_param[2].format('.00000')})*RENTE+({#cofcb_param[3].format('.00000')})) ;';
+TELL 'FRML _SJRD   DLOG(FCB)=({#fcb_param[1].format('.00000')})*DLOG((YDP-IPV)/PCP)
+                             +({#fcb_param[2].format('.00000')})*COFCB[-1]+({#fcb_param[3].format('.00000')}) ;';
+TELL 'FRML _SJRD   DLOG(FCP)=({#fcp_param[1].format('.00000')})*DLOG(YD_H/PCP)
+                            +({#fcp_param[2].format('.00000')})*DLOG(WH_H[-1]/PCP)
+							+({#fcp_param[3].format('.00000')})*(LOG(FCP[-1])-(({#cofcp_param[1].format('.00000')})*LOG(YD_H[-1]/PCP[-1])+({#cofcp_param[2].format('.00000')})*LOG((WCP[-2])/PCP[-1])))
+							+({#fcp_param[4].format('.00000')})*DLOGPCPT+({#fcp_param[5].format('.00000')})*ARBLOS2
+							+({#fcp_param[6].format('.00000')})*DMIMS+({#fcp_param[7].format('.00000')})*D7734
+							+({#fcp_param[8].format('.00000')})*D78Q4+({#fcp_param[9].format('.00000')}) ;';
+TELL 'FRML _GJ_D   DLOG(I_H)=DLOG(PIH*FIH) ;';
+TELL '';
+//###BOLIGMODEL
+TELL 'FRML _DJ_D   AIH=AIH[-1]+.25*FIHN ;';
+TELL 'FRML _DJ_D   AIHB=AIH*KP ;';
+TELL 'FRML _DJ_D   FIH=(({#FIH_param[1].format('.00000')})*FIHN[-1]/AIH[-2]+({#FIH_param[2].format('.00000')})*(.001)*LOG(KP[-1]/PIH[-1])
+                      +({#FIH_param[3].format('.00000')})*(.001)*DLOG(KP/PIH)+({#FIH_param[4].format('.00000')})*(.001)*D100Q1
+					  +({#FIH_param[5].format('.00000')})*(.001)*D100Q1[-1]+({#FIH_param[6].format('.00000')}))*AIH[-1]+FIHV ;';
+TELL 'FRML _DJ_D   FIHN=FIH-FIHV ;';
+TELL 'FRML _DJ_D   FIHV=({#FIHV_param[1].format('.00000')})*.001*AIH[-1] ;';
+TELL 'FRML _GJRD   FKHOE=EXP(LOG(YD_H/PCP)+(({#kp_param[3].format('.00000')})*LOG(KP/PCP)
+                       +({#kp_param[4].format('.00000')})*((1-TSUIH)*IB30
+					   +SSATS-DPCPE_AR)+({#kp_param[5].format('.00000')})*((1-TSUIH)*IBMIN00+SSATS+AFDR)
+					   +({#kp_param[6].format('.00000')})*DRKPE_AR
+					   +({#kp_param[8].format('.00000')}))/({#kp_param[7].format('.00000')})) ;';
+TELL 'FRML _GJ_D   DLOG(FCH)=DLOG(AIH[-1]) ;';
+TELL 'FRML _SJRD   DLOG(KP)=(({#kp_param[1].format('.00000')})*DLOG((KP[-1]/PCP[-1]))
+						     +({#kp_param[2].format('.00000')})*d7098q4*DIFF((1-TSUIH)*IB30+SSATS)
+							 +({#kp_param[3].format('.00000')})*LOG(KP[-1]/PCP[-1])
+							 +({#kp_param[4].format('.00000')})*((1-TSUIH[-1])*IB30[-1]+SSATS[-1]-DPCPE_AR[-1])
+							 +({#kp_param[5].format('.00000')})*((1-TSUIH[-1])*IBMIN00[-1]+SSATS[-1]+AFDR[-1])
+							 +({#kp_param[6].format('.00000')})*DRKPE_AR[-1]
+							 +({#kp_param[7].format('.00000')})*LOG(YD_H[-1]/PCP[-1]/AIH[-1])+({#kp_param[8].format('.00000')}))+DLOG(PCP) ;';
+TELL 'FRML _I      YFH=FYFH*PYFH ;';
+
+////###ARBEJDSMARKEDET
+TELL 'FRML _GJ_D   DLOGBESKFRK=DLOG((QP+QO+QS+UEL_X6566)/B1574) ;';
+TELL 'FRML _DJ_D__ ERHFRK=EXP(( ({#erhfrk_param[1].format('.00000')})*DLOG(ERHFRK[-1])+({#erhfrk_param[2].format('.00000')})*DLOGBESKFRK
+                               +({#erhfrk_param[3].format('.00000')})*(LOG(ERHFRK[-1])-LNTREN[-1])+({#erhfrk_param[4].format('.00000')})*(LOG(ERHFRK[-1])-LOG((QP[-1]+QO[-1]+QS[-1]+UEL_X6566[-1])/B1574[-1]))
+							   +({#erhfrk_param[5].format('.00000')})*DUMMY1973Q4+({#erhfrk_param[6].format('.00000')})*DUMMY1991Q1
+							   +({#erhfrk_param[7].format('.00000')})*DUMMY1992Q1+({#erhfrk_param[8].format('.00000')}))+LOG(ERHFRK[-1])) ;';
+TELL 'FRML _DJ_D__ HLNIO=(.45*LOG(LNA*MAXTID)+.45*LOG(LNF)+.10*LOG(LO)+LOG(QP)) ;';
+TELL 'FRML _DJ_D__ KOMP=(TYD/(UL*.85))/((1-ARBSATS)*(YW)/(QP+QO)) ;';
+TELL 'FRML _SJRD   DLOG(LNA)=({#lna_param[1].format('.00000')})*DPCPE_AR+({#lna_param[2].format('.00000')})*DIFF(ULB/U)
+                              +({#lna_param[3].format('.00000')})*(ULB[-1]/U[-1])+({#lna_param[4].format('.00000')})*DLOG((MAXTID2))
+							  +(0.02)*KOMP[-1]+({#lna_param[5].format('.00000')})*KOMPE[-1]
+							  +({#lna_param[6].format('.00000')}) ;';
+TELL 'FRML _GJRD   LOG(LNF)=(LOG(MAXTID2*LNA)) ;';
+TELL 'FRML _GJRD   LOG(LNIO)=(LOG(EXP(HLNIO)+(ALBA*(0.82*QP-145)+ATPA*0.82*QP)/1000000+INVB)-LOG(MAXTID)-LOG(QP)) ;';
+TELL 'FRML _GJRD   LOG(LO)=LOG((LNF[-4]+LNF[-5]+LNF[-6]+LNF[-7])/4) ;';
+TELL 'FRML _I      QP=QBY+QLA ;';
+TELL 'FRML _DJ_D__ QULB=BQULB*UAB ;';
+TELL 'FRML _DJ_D__ U=ERHFRK*B1574 ;';
+TELL 'FRML _DJ_D__ UAB=BUAB*ULB ;';
+TELL 'FRML _DJ_D__ UL=ULB-UAB ;';
+TELL 'FRML _DJ_D__ ULB=U-QS-QO-QP-UEL_X6566+QULB ;';
+
+////###UDENRIGSHANDEL
+//// Import
+TELL 'FRML _GJ_D   DLOGXFMVXK=DLOG((XFMVX+({%s1.format('.00000')})*FILBX_RP*(PDEMAND_LA/PXMVX_LA))) ;';
+TELL 'FRML _I      FM=(FMV*PMV_LA+FMT*PMT_LA+FMS*PMS_LA)/PM_LA ;';
+TELL 'FRML _DJ_D__ FMBRA=(FMBRAK-FYFE) ;';
+TELL 'FRML _DJ_D__ FMV=((FMBRA+FMOL)*PMBRAOL_LA+FMVX*PMVX_LA+FMY*PMY_LA)/PMV_LA ;';
+TELL 'FRML _SJRD   DLOG(FMBRAK)=(({#fmbrak_param[1].format('.00000')})*DLOG(FMBRAK[-1]/XFMBRA[-1])+({#fmbrak_param[2].format('.00000')})*LOG(FMBRAK[-1]/XFMBRA[-1])
+                                +({#fmbrak_param[3].format('.00000')})*LOG(TER[-1]*(PMBRA[-1]+TMBRA[-1])/MULC[-1])
+					  		    +({#fmbrak_param[4].format('.00000')})*(.001)*TREND+({#fmbrak_param[5].format('.00000')}))+DLOG(XFMBRA) ;';
+TELL 'FRML _GJRD   LOG(FMS)=-.05*DLOG((PMS/MULC))-.20*0.30*LOG(PMS[-1]/MULC[-1])+.2*LOG(FCP)+.80*LOG(FMS[-1]) ;';
+TELL 'FRML _GJ_D   DLOG(FMT)=DLOG(FCP) ;';
+TELL 'FRML _SJRD   DLOG(FMVX)=({#fmvx_param[1].format('.00000')})*DLOGXFMVXK+({#fmvx_param[2].format('.00000')})*DLOG(((PMVX+TMVX)/MULC))
+                             +({#fmvx_param[3].format('.00000')})*LOG(FMVX[-1]/XFMVX[-1])+({#fmvx_param[4].format('.00000')})*LOG((PMVX[-1]+TMVX[-1])/MULC[-1])
+							 +({#fmvx_param[5].format('.00000')})*(LOG(FYFBX[-1])-(.33)*LOG(KM[-1])-(.67)*LOG(QBYX[-1]))
+							 +({#fmvx_param[6].format('.00000')})*(.001)*TREND+({#fmvx_param[7].format('.00000')}) ;';
+TELL 'FRML _I      M=MV+FMT*PMT+FMS*PMS ;';
+TELL 'FRML _DJ_D__ MKV=((FMVX/XFMVX+FMVX[-1]/XFMVX[-1]+FMVX[-2]/XFMVX[-2]+FMVX[-3]/XFMVX[-3])/4)/0.959374 ;';
+TELL 'FRML _DJ_D__ MV=PMBRA*(FMBRA+FMOL)+FMVX*PMVX+FMY*PMY ;';
+TELL 'FRML _DJ_D__ XFMBRA=(0.0039*FCB*PCB_LA+0.0044*FCH*PCH_LA+0.0323*FCQ*PCQ_LA+0.0251*FCOV*PCOV_LA+0.0063*(FIOM*PIOM_LA+FIPM*PIPM_LA)+0.0169*(FIPB*PIPB_LA+FIOB*PIOB_LA)+0.0128*FIH*PIH_LA+0.0411*FIT*PIT_LA+0.3065*FILVG*PILVG_LA+0.0304*FEFOED*PEFOED_LA+0.0212*FERAAV*PERAAV_LA+0.8844*(FEOL*PEOL_LA+FEBRA*PEBRA_LA)+0.0079*FEIND*PEIND_LA+0.0023*FEY*PEY_LA+0.1003*FES*PES_LA)/PXMBRA_LA ;';
+TELL 'FRML _DJ_D__ XFMVX=(0.3814*FCB*PCB_LA+0.0352*FCH*PCH_LA+0.1433*FCQ*PCQ_LA+0.2304*FCOV*PCOV_LA+0.2818*(FIOM*PIOM_LA+FIPM*PIPM_LA-FIY*PIY_LA)+0.0878*FIY*PIY_LA+0.1195*(FIPB*PIPB_LA+FIOB*PIOB_LA)+0.1021*FIH*PIH_LA+0.2750*FIT*PIT_LA+0.2651*FILVG*PILVG_LA+0.3409*FEFOED*PEFOED_LA+0.4522*FERAAV*PERAAV_LA+0.0188*(FEOL*PEOL_LA+FEBRA*PEBRA_LA)+0.4011*FEIND*PEIND_LA+0.1032*FEY*PEY_LA+0.0327*FES*PES_LA)/PXMVX_LA ;';
+
+// Eksport
+TELL 'FRML _I      E=EV+FET*PET+FES*PES ;';
+TELL 'FRML _I      EV=FEFOED*PEFOED+FERAAV*PERAAV+FEIND*PEIND+FEBRA*PEBRA+FEOL*PEOL+FEY*PEY ;';
+TELL 'FRML _I      FE=(FEV*PEV_LA+FET*PET_LA+FES*PES_LA)/PE_LA ;';
+TELL 'FRML _I      FEV=(FEFOED*PEFOED_LA+FERAAV*PERAAV_LA+FEIND*PEIND_LA+FEBRA*PEBRA_LA+FEOL*PEOL_LA+FEY*PEY_LA)/PEV_LA ;';
+TELL 'FRML _GJRD   LOG(FEFOED)=-.20*3.14*LOG(PEFOED*EFKRKS/PXUDL)+.2*LOG(FEU)+.80*LOG(FEFOED[-1]) ;';
+TELL 'FRML _SJRD   DLOG(FEIND)=({#feind_param[1].format('.00000')})*DLOG((FEIND[-1]+0))+({#feind_param[2].format('.00000')})*DLOG((FEU))
+                                +({#feind_param[3].format('.00000')})*DLOG((PXUDL/PXDEN))+({#feind_param[4].format('.00000')})*(LOG(FEIND[-1]/FEU[-1])
+					 	        -(({#cofeind_param[1].format('.00000')})*LOG(LONUDL[-1]/(EFKRKS[-1]*LNIO[-1]))+({#cofeind_param[2].format('.00000')})*DUM903[-1]+({#cofeind_param[3].format('.00000')})*(.001)*TREND))
+							    +({#feind_param[5].format('.00000')})*LOG(TUC[-1])+({#feind_param[6].format('.00000')}) ;';
+TELL 'FRML _GJRD   LOG(FERAAV)=-.20*3.14*LOG(PERAAV*EFKRKS/PXUDL)+.2*LOG(FEU)+.80*LOG(FERAAV[-1]) ;';
+TELL 'FRML _GJRD   LOG(FES)=-.65*DLOG((PES/((PSHIP*EUSD)**.80*(LONUDL/EFKRKS)**.20)))+.20*.3*LOG(PES[-1]/MULC[-1])+.2*LOG(FEU)+.8*LOG(FES[-1]) ;';
+TELL 'FRML _GJRD   LOG(FET)=-.65*DLOG((PET/(PXUDL/EFKRKS)))-.20*1.5*LOG(PET[-1]/(PXUDL[-1]/EFKRKS[-1]))+.2*LOG(FEU)+.80*LOG(FET[-1]) ;';
+TELL 'FRML _GJRD   LOG(FEY)=-.20*2.0*LOG(PEY/(PXUDL/EFKRKS))+.2*LOG(FEU)+.8*LOGFEY[-1] ;';
+
+TELL '//###OFFENTLIG SEKTOR';
+TELL '// Indtægter';
+TELL 'FRML _DJ_D__ ASKAT=BSDA*(YW+TYD+TYE+TYO+TYP+TYPI-SBID-SDU-(TPPK-TYPK)-(B1574/1000)*PFRD) ;';
+TELL 'FRML _DJ_D__ BTGCP=({%vag_gb.format('.000000')})*BTGB+({%vag_gh.format('.000000')})*BTGH+({%vag_gq.format('.000000')})*BTGQ ;';
+TELL 'FRML _DJ_D__ DDSK=(BSDA*.25*.3*(YDP-IPV-YDMAS+0+YDP[-1]-IPV[-1]-YDMAS[-1]+DDSK[-1]+YDP[-2]-IPV[-2]-YDMAS[-2]+DDSK[-2]+YDP[-3]-IPV[-3]-YDMAS[-3]+DDSK[-3]))/(1-.25*.3*BSDA) ;';
+TELL 'FRML _I      IOV=FIOV*PIOV ;';
+TELL 'FRML _GJRD   LOG(PFRD)=LOG(YW+TYE+TYD+TYO+TYP+TYPI-SBID-SDU-(TPPK-TYPK))-LOG(B1574/1000) ;';
+TELL 'FRML _DJ_D__ LOGSIQAM=LOG(QFTJ*LO) ;';
+TELL 'FRML _DJ_D__ LOGSIQEJ=LOG(KP[-4]*AIH[-4]) ;';
+TELL 'FRML _DJ_D__ LOGSIQS=LOG(YFPX) ;';
+TELL 'FRML _DJ_D__ LOGSIQUAB=LOG(QP+QO) ;';
+TELL 'FRML _DJ_D__ LOGSISUB=LOG(YFPX) ;';
+TELL 'FRML _DJ_D__ SBID=QO*0/1000000+(1.17*ALBM*(FORS+UEL*DUMUEL)+0*0.89*(QP+UL*DUMUL)+0*QO)/1000000+(ALBA*(0.89*QP-145)+0*0.89*(QP+UL*DUMUL))/1000000+ATPSATS*YW+INVB+TYPRI ;';
+TELL 'FRML _DJ_D__ SD=ASKAT+DDSK+ROF+SDS+SDV+SAK+SDR+SDU ;';
+TELL 'FRML _DJ_D__ SDS=TAX*(.7*(YFBX-YWBY)+FYFE*PYFE-.7*IPV) ;';
+TELL 'FRML _DJ_D__ SDU=(QP+QO)*TDU+ARBSATS*1.1*YW ;';
+TELL 'FRML _DJ_D__ SIAF=SIG+SIR+PKAFG+(1-DEUSIM)*SIM+SIQV+SIQEJ+SIQAM+SIQUAB+SIQR ;';
+TELL 'FRML _DJ_D__ SIE=DEUSIM*SIM-SISUBEX ;';
+TELL 'FRML _DJ_D__ SIG=BTGQ*TG*FCQ*PCQ/(1+BTGQ*TG)+BTGH*TG*FCH*PCH/(1+BTGH*TG)+BTGB*TG*FCB*PCB/((1+BTGB*TG)*(1+TRB))+BTGYBX*TG*YFBX+BTGYH*TG*YFH+BTGIOM*TG*FIOM*PIOM/(1+BTGIOM*TG)+BTGIOB*TG*FIOB*PIOB/(1+BTGIOB*TG)+BTGIH*TG*FIH*PIH/(1+BTGIH*TG)+BTGIPM*TG*FIPM*PIPM/((1+BTGIPM*TG)*(1+TRIPM))+BTGIPB*TG*FIPB*PIPB/(1+BTGIPB*TG)+BTGCOV*TG*FCOV*PCOV/(1+BTGCOV*TG) ;';
+TELL 'FRML _DJ_D__ SIM=TMBRA*FMBRA+TMVX*FMVX+TMY*FMY ;';
+TELL 'FRML _DJ_D__ SIQAM=EXP(LOGSIQAM) ;';
+TELL 'FRML _DJ_D__ SIQEJ=EXP(LOGSIQEJ) ;';
+TELL 'FRML _DJ_D__ SIQS=EXP(LOGSIQS) ;';
+TELL 'FRML _DJ_D__ SIQUAB=EXP(LOGSIQUAB) ;';
+TELL 'FRML _DJ_D__ SIR=TRB*FCB*PCB/(1+TRB)+TRIPM*FIPM*PIPM/(1+TRIPM) ;';
+TELL 'FRML _DJ_D__ SISUB=EXP(LOGSISUB) ;';
+TELL 'FRML _DJ_D__ TPKCP=({%ratio_tp.format('.00000')})*TPKQ ;';
+TELL 'FRML _DJ_D__ TPKQ=TPKQ[-1]*(1-.5*TFON[-1]/Y[-1]-.5*DIFF(TFON[-1]/Y[-1])+.5*DIFF(DIFF(TFON[-1]/Y[-1]))) ;';
+TELL 'FRML _DJ_D__ TRCP=({%ratio_tr.format('.00000')})*TRB ;';
+
+
+TELL '// Udgifter';
+TELL 'FRML _DJ_D__ DAGL=(YW-SBID-SDU)/(QO+QP) ;';
+TELL 'FRML _DJ_D__ DAGP=TYD/UL ;';
+TELL 'FRML _DJ_D__ DAGST=EXP(LOGDAGST) ;';
+TELL 'FRML _DJ_D__ FCO=(PCOV_LA*FCOV+PCOW_LA*FCOW+PIOV_LA*FIOV)/PCO_LA ;';
+TELL 'FRML _I      FIO=(PIOM_LA*FIOM+PIOB_LA*FIOB)/PIO_LA ;';
+TELL 'FRML _DJ_D__ LOGDAGST=LOG(PTTY1) ;';
+TELL 'FRML _DJ_D__ LOGPTTY1=LOG(PTTY1[-1])+LOG(((LNA[-8]*MAXTID[-8])/(LNA[-9]*MAXTID[-9]))*((1-ARBSATS[-8])/(1-ARBSATS[-9]))-.003) ;';
+TELL 'FRML _DJ_D__ LOGTYD=(LOG(.000001*312*DAGST*UL)) ;';
+TELL 'FRML _DJ_D__ LOGTYE=(LOG(DAGST*UEL+DTYE_)) ;';
+TELL 'FRML _DJ_D__ LOGTYO=(LOG(DAGST*ORLOV+DTYO_)) ;';
+TELL 'FRML _DJ_D__ LOGTYPSFO=LOG(PTTY1)+LOG(UFO) ;';
+TELL 'FRML _DJ_D__ LOGTYPSFP=LOG(PTTY1)+LOG(UFP) ;';
+TELL 'FRML _DJ_D__ LOGTYR=LOG(PTTY1) ;';
+TELL 'FRML _DJ_D__ LOGTYSAS=LOG(PTTY1)+LOG(QO+QP) ;';
+TELL 'FRML _GJ_D   DLOG(QO)=DLOG(FCOW/OTIME) ;';
+TELL 'FRML _DJ_D__ PTTY1=EXP(LOGPTTY1) ;';
+TELL 'FRML _DJ_D__ TION=IBZ*(KURSS/KURSS[-1])*(GBZK[-1]+LBZK[-1]+0)+IDP*LDEB[-1]+(IDI-.02)*GLON[-1]-0.7*DREN-IBZ*(KURSG/KURSG[-1])*(BZGK[-1]+BZLK[-1])-ILO*BLOL[-1]-ILO*ALOL[-1]-IUDLG*((FLOGK[-1]+FLOLK[-1])*(EFKRKS[-1]/EFKRKS)**.5) ;';
+TELL 'FRML _DJ_D__ TIOV=-(IMM*BQQN[-1])-(IDI-.02)*GLON[-1]+IBZ*(KURSS/KURSS[-1])*NBZK[-1] ;';
+TELL 'FRML _DJ_D__ TYD=EXP(LOGTYD) ;';
+TELL 'FRML _DJ_D__ TYE=EXP(LOGTYE) ;';
+TELL 'FRML _DJ_D__ TYO=EXP(LOGTYO) ;';
+TELL 'FRML _DJ_D__ TYP=TYPSFP+TYPSFO+TYSAS+TYR ;';
+TELL 'FRML _DJ_D__ TYPSFO=EXP(LOGTYPSFO) ;';
+TELL 'FRML _DJ_D__ TYPSFP=EXP(LOGTYPSFP) ;';
+TELL 'FRML _DJ_D__ TYR=EXP(LOGTYR) ;';
+TELL 'FRML _DJ_D__ TYSAS=EXP(LOGTYSAS) ;';
+
+TELL '//### BVT OG ERHVERV';
+TELL 'FRML _DJ_D__ AIPB=KM*PIPM+KB*PIPB ;';
+TELL 'FRML _DJ_D__ CUB=((1-TAX*ZBBYG)/(1-TAX))*PIPB*((1-TAX)*IBZ-DPYFBXE+.0200) ;';
+TELL 'FRML _DJ_D__ CUM=((1-TAX*ZMMASK)/(1-TAX))*PIPM*((1-TAX)*IBZ-DPYFBXE+.1600) ;';
+TELL 'FRML _I      FIPB=(FIPBXE*PIPBXE_LA+FIEB*PIEB_LA)/PIPB_LA ;';
+TELL 'FRML _DJ_D__ FIPBXE=4*(EXP((({#fipbxe_param[1].format('.00000')})*DLOG(KB[-1])+({#fipbxe_param[2].format('.00000')})*.001*LOG(FYFBX[-1]/KB[-1])
+                                 +({#fipbxe_param[3].format('.00000')})*.001*(TREND-1994)*(1-DUMMY7193)+({#fipbxe_param[4].format('.0000000')}))+LOG(KB[-1]))-KB[-1]+DB*KB[-1])
+								   *PKB_LA/PIPBXE_LA ;';
+TELL 'FRML _I      FIPM=(FIPMXE*PIPMXE_LA+FIY*PIY_LA+FIEM*PIEM_LA)/PIPM_LA ;';
+TELL 'FRML _DJ_D__ FIPMXE=4*(EXP((({#fipmxe_param[1].format('.00000')})*DLOG(KM[-1])+({#fipmxe_param[2].format('.00000')})*DLOG(KM[-2])
+                          +({#fipmxe_param[3].format('.00000')})*(.001)*DLOGFYFBX+({#fipmxe_param[4].format('.00000')})*(.001)*(LOG(KM[-1])-LOG(FYFBX[-1]))
+						  +({#fipmxe_param[5].format('.00000')})*(.001)*LOG(RLNIM[-1])+({#fipmxe_param[6].format('.0000000')}))+LOG(KM[-1]))-KM[-1]*(1-DM_))*PKM_LA/PIPMXE_LA ;';
+TELL 'FRML _I      FIY=IY/PIY ;';
+TELL 'FRML _DJ_D__ KB=KB[-1]*(1-DB)+.25*PIPBXE_LA/PKB_LA*FIPBXE ;';
+TELL 'FRML _DJ_D__ KM=KM[-1]*(1-DM_)+.25*PIPMXE_LA/PKM_LA*FIPMXE ;';
+TELL 'FRML _GJ_D   DLOG(IPV)=DLOG(YDP) ;';
+TELL 'FRML _DJ_D__ MULC=LNIO/(((KM/QBYX)**(1/({%subelas.format('.00000')})))**.33) ;';
+TELL 'FRML _DJ_D__ RLNIB=(CUB/LNIO)/EXP(({#rlnib_param[1].format('.000000')})*TREND+({#rlnib_param[2].format('.000000')})) ;';
+TELL 'FRML _DJ_D__ RLNIM=(CUM/LNIO)/EXP(({#rlnim_param[1].format('.00000')})*.001*TREND+({#rlnim_param[2].format('.00000')})) ;';
+TELL 'FRML _DJ_D__ TUC=EXP(LOG(FYFBX)-LOG(KM)-({%subelas.format('.00000')})*0.67*LOG(RLNIM))/({%maxtuc.format('.00000')}) ;';
+TELL 'FRML _DJ_D__ ULC=YWBY/FYFBX ;';
+TELL 'FRML _DJ_D__ ZBBYG=ZZBBYG_+ZBN*(IBZ-ZIBZ)+ZBT*(TAX-ZTAX)+ZBDPC*(DPC-ZDPC_) ;';
+TELL 'FRML _DJ_D__ ZMMASK=ZZMMASK_+ZMN*(IBZ-ZIBZ)+ZMT*(TAX-ZTAX)+ZMDPC*(DPC-ZDPC_) ;';
+TELL 'FRML _D      DEMAND=(FYF*PYF_LA-FILVG*PILVG_LA+FM*PM_LA)/PDEMAND_LA ;';
+TELL 'FRML _DJ_D__ DLOGFYFBX=DLOG((FYFBX)) ;';
+TELL 'FRML _DJ_D__ FXE=KFXE*FYFE ;';
+TELL 'FRML _I      FY=(FCB*PCB_LA+FCH*PCH_LA+FCQ*PCQ_LA+PCOV_LA*FCOV+PCOW_LA*FCOW+PIOV_LA*FIOV+FIPMXE*PIPMXE_LA+FIY*PIY_LA+FIEM*PIEM_LA+FIPBXE*PIPBXE_LA+FIEB*PIEB_LA+FIH*PIH_LA+FIOM*PIOM_LA+FIOB*PIOB_LA+FILVG*PILVG_LA+FIT*PIT_LA+FEFOED*PEFOED_LA+FERAAV*PERAAV_LA+FEIND*PEIND_LA+FEBRA*PEBRA_LA+FEOL*PEOL_LA+FEY*PEY_LA+FES*PES_LA-((FMBRA+FMOL)*PMBRAOL_LA+FMVX*PMVX_LA+FMY*PMY_LA+FMS*PMS_LA))/PY_LA ;';
+TELL 'FRML _I      FYF=(FY*PY_LA-FSI*DFSI_LA)/PYF_LA ;';
+TELL 'FRML _I      FYFBX=(PYFPX_LA*FYFPX-PYFLA_LA*FYFLA)/PYFBX_LA ;';
+TELL 'FRML _DJ_D__ FYFO=(PCOW_LA*FCOW+PIOV_LA*FIOV)/PYFO_LA ;';
+TELL 'FRML _I      FYFPX=(PY_LA*FY-DFSI_LA*FSI-PYFO_LA*FYFO-PYFH_LA*FYFH-PYFE_LA*FYFE)/PYFPX_LA ;';
+TELL 'FRML _D      FYTR=(PY_LA*FY+PM_LA*FM-PE_LA*FE)/PYTR_LA ;';
+TELL 'FRML _GJRD   LOG(FSI)=(LOG(.4600*FCB+.2240*FCQ+.0063*FCH+.2290*FCOV+.1400*(FIH+FIO)-.1070*FEFOED+.0170*FY)) ;';
+TELL 'FRML _GJ_D   DLOG(FYFH)=DLOG(FCH) ;';
+TELL 'FRML _GJRD   LOG(YWBY)=LOG(QBY*MAXTID*LNIO*.0001) ;';
+TELL 'FRML _GJRD   LOG(YWLA)=LOG(QLA*MAXTID*LNIO*.0001) ;';
+TELL 'FRML _GJRD   LOG(YWO)=(LOG(0.314067*QO*LO+(0.667*QO*ATPST)/1000000+TYPRI)) ;';
+TELL 'FRML _DJ_D__ PROBX=10000*FYFBX/(MAXTID*QBY) ;';
+TELL 'FRML _DJ_D__ QBY=1000*QBYX/MAXTID**.7+QBY_ORL ;';
+TELL 'FRML _SJRD   DLOG(QBYX)=(({#qbyx_param[1].format('.00000')})*DLOG(FYFBX)
+                              +({#qbyx_param[2].format('.00000')})*(LOG(FYFBX[-1])-0.67*LOG(QBYX[-1])-0.33*LOG(KM[-1]))
+							  +({#qbyx_param[3].format('.00000')})*(.001)*(TREND-1970)
+							  +({#qbyx_param[4].format('.00000')})*(.001)*(1-DUMMY7199)*(TREND-2000)
+							  +({#qbyx_param[5].format('.00000')})) ;';
+TELL 'FRML _DJ_D__ STOCK=STOCK[-1]+.25*FILBX_RP ;';
+TELL 'FRML _I      Y=PCP*FCP+PCO*FCO+PIPM*FIPM+PIPB*FIPB+PIH*FIH+PIO*FIO+PILVG*FILVG+PIT*FIT+PE*FE-PM*FM ;';
+TELL 'FRML _I      YF=0+Y-(SIAF-SIQEJ-SIQV-SIQAM-SIQUAB-SIQR)+SISUB-SIQS-SIE ;';
+TELL 'FRML _D      YFBX=YFPX-FYFLA*PYFLA ;';
+TELL 'FRML _I      YFO=PCOW*FCOW+IOV ;';
+TELL 'FRML _D      YFPX=0+Y-(SIAF-SIQEJ-SIQV-SIQAM-SIQUAB-SIQR)+SISUB-SIQS-SIE-YFO-YFH-FYFE*PYFE ;';
+TELL 'FRML _D      YTR=0+Y+M-E ;';
+TELL 'FRML _I      YW=YWBY+YWLA+YWO ;';
+TELL '';
+TELL '// Lagre';
+TELL 'FRML _DJ_D__ FILBX_RP=-(( ({#filbx_rp_param[1].format('.0000000')})*DIFF((DEMAND))/DEMAND[-1]+({#filbx_rp_param[2].format('.0000000')})*(.001)*LOG(STOCK[-1]/DEMAND[-1])
+                               +({#filbx_rp_param[3].format('.0000000')})*DLOG((QBYX[-1]))+({#filbx_rp_param[4].format('.0000000')}))*DEMAND[-1]) ;';
+TELL 'FRML _DJ_D__ FILVG=PDEMAND_LA/PILVG_LA*FILVGX_RP+PDEMAND_LA/PILVG_LA*FILBX_RP ;';
+TELL '';
+TELL '//###PRISER';
+TELL 'FRML _SJRD   DLOG(RESTX)=({#restx_param[1].format('.00000')})*DLOG((LNIO[-1]))+({#restx_param[2].format('.00000')})*DLOG(PIMPOR)
+                              +({#restx_param[3].format('.00000')})*DLOG(PIMPOR[-1])+({#restx_param[4].format('.00000')})*DLOG(PIMPOR[-2])
+							  +({#restx_param[5].format('.00000')})*(LOG(RESTX[-1])-LOG(MULC[-1]))
+							  +({#restx_param[6].format('.00000')})*(.001)*TREND+({#restx_param[7].format('.00000')})*D7734
+							  +({#restx_param[8].format('.00000')})*D8081+({#restx_param[9].format('.00000')}) ;';
+TELL 'FRML _DJ_D__ DPC=DUMDPC*(.5*DPC[-1]+.25*(NCP/NCP[-4]+NCP[-1]/NCP[-5]-2)) ;';
+TELL 'FRML _DJ_D__ DPCPE_AR=0.875*DPCPE_AR[-1]+0.125*LOG(PCP/PCP[-4]) ;';
+TELL 'FRML _DJ_D__ DPYFBXE=DPYBW*(.8*DPYFBXE[-1]+.2*.5*LOG(PYFBX/PYFBX[-4]))+(1-DPYBW)*(LOG(PYFBX[-4]/PYFBX))/10 ;';
+TELL 'FRML _DJ_D__ DRKPE_AR=0.8*DRKPE_AR[-1]+0.2*LOG((KP/PCP)/(KP[-4]/PCP[-4])) ;';
+TELL 'FRML _GJRD   LOG(PCH)=(.125*(LOG(NCP)+LOG(NCP[-1])+LOG(NCP[-2])+LOG(NCP[-3])+LOG(NCP[-4])+LOG(NCP[-5])+LOG(NCP[-6])+LOG(NCP[-7]))) ;';
+TELL 'FRML _GJRD   LOG(PCPDK)=LOG(1+BTGCP*TG)+LOG(1+TRCP)+LOG(NCP+TPKCP) ;';
+TELL 'FRML _GJRD   LOG(PCPDKEU)=LOG(1+BTGCP*TG)+LOG(1+TRCP)+LOG(NCP_HICP+TPKCP) ;';
+TELL 'FRML _SJRD   DLOG(PEBRA)=({#pebra_param[1].format('.00000')})*DLOG((PRAOLI*EUSD))+({#pebra_param[2].format('.00000')})*DLOG(PEBRA[-1])
+                              +({#pebra_param[3].format('.00000')})*LOG(PEBRA[-1])+({#pebra_param[4].format('.00000')})*LOG(PRAOLI[-1]*EUSD[-1])
+							  +({#pebra_param[5].format('.00000')})*LOG(LONUDL[-1]/EFKRKS[-1])+({#pebra_param[6].format('.00000')}) ;';
+TELL 'FRML _GJ_D   DLOG(PEFOED)    = DLOG(PEIND) ;';
+TELL 'FRML _GJRD   LOG(PEIND)=LOG(PXDEN/EFKRKS) ;';
+TELL 'FRML _SJRD   DLOG(PENER)=({#pener_param[1].format('.00000')})*DLOG(PMBRA+TMBRA)+({#pener_param[2].format('.00000')})*LOG(PENER[-1])
+                              +({#pener_param[3].format('.00000')})*LOG(MULC[-1])+({#pener_param[4].format('.00000')})*LOG(PMBRA[-1]+TMBRA[-1])
+							  +({#pener_param[5].format('.00000')})*(.001)*TREND+({#pener_param[6].format('.00000')}) ;';
+TELL 'FRML _DJ_D   LOGPENSATS=LOG(LNF/PCP) ;';
+TELL 'FRML _DJRD   LOG(PEOL)=LOG(PEBRA) ;';
+TELL 'FRML _GJ_D   DLOG(PERAAV)   = DLOG(PEIND) ;';
+TELL 'FRML _SJRD   DLOG(PES)=({#pes_param[1].format('.00000')})*DLOG((PSHIP*EUSD))+({#pes_param[2].format('.00000')})*DLOG((LONUDL/EFKRKS))
+                            +({#pes_param[3].format('.00000')})*LOG(EUSD/EUSD[-4])+({#pes_param[4].format('.00000')})*LOG(PES[-1])
+						    +({#pes_param[5].format('.00000')})*LOG(PSHIP[-1]*EUSD[-1])+({#pes_param[6].format('.00000')})*LOG(LONUDL[-1]/EFKRKS[-1])
+						    +({#pes_param[7].format('.00000')})*(.001)*TREND+({#pes_param[8].format('.00000')}) ;';
+TELL 'FRML _GJ_D   DLOG(PET) = DLOG(PCQ) ;';
+TELL 'FRML _GJ_D   DLOG(PEY) = DLOG(PEIND) ;';
+TELL 'FRML _GJRD   LOG(PFODEV)=({#pfodev_param[1].format('.00000')})*LOG(MKV*({%im_pfodev.format('.000')})*PMVX+(1-MKV*({%im_pfodev.format('.000')}))*RESTX/({%mrestx.format('.00000')}))
+                              +({#pfodev_param[2].format('.00000')})*(.001)*TREND+({#pfodev_param[3].format('.00000')}) ;';
+TELL 'FRML _GJ_D   DLOG(PHUSL) = DLOG(PCH) ;';
+TELL 'FRML _GJ_D   DLOG(PIEB) = DLOG(PIPB) ;';
+TELL 'FRML _GJ_D   DLOG(PIEM)=DLOG(PIPM) ;';
+TELL 'FRML _GJRD   PIH = QIB*(1+BTGIH*TG) ;';
+TELL 'FRML _GJRD   PIMPOR= PMVX+TMVX ;';
+TELL 'FRML _GJRD   PIOB = QIB*(1+BTGIOB*TG) ;';
+TELL 'FRML _GJRD   PIOM=  QIM*(1+BTGIOM*TG) ;';
+TELL 'FRML _GJ_D   DLOG(PIOV) = DLOG(PIO) ;';
+TELL 'FRML _GJRD   PIPB=QIB*(1+BTGIPB*TG) ;';
+TELL 'FRML _GJRD   PIPM=QIM*(1+BTGIPM*TG)*(1+TRIPM);';
+TELL 'FRML _DJ_D__ LOGPM59=.5*LOG(PMVX) ;';    //DENNE LIGNING SKAL HAVE ÆNDRET INDHOLD - HALVERER PRISVÆKST I INDUSTRIEKSPORTEN
+TELL 'FRML _SJRD   DLOG(PMBRA)=({#pmbra_param[1].format('.00000')})*DLOG((PRAOLI*EUSD))+({#pmbra_param[2].format('.00000')})*DLOG((PMBRA[-1]+0))
+                              +({#pmbra_param[3].format('.00000')})*LOG(PMBRA[-1])+({#pmbra_param[4].format('.00000')})*LOG(PRAOLI[-1]*EUSD[-1])
+							  +({#pmbra_param[5].format('.00000')})*LOG(LONUDL[-1]/EFKRKS[-1])+({#pmbra_param[6].format('.00000')}) ;';
+TELL 'FRML _GJ_D   DLOG(PMS)=DLOG(PES) ;';
+TELL 'FRML _GJ_D   DLOG(PMT)=DLOG(LONUDL/EFKRKS) ;';
+TELL 'FRML _SJRD   DLOG(PMVX)=({#pmvx_param[1].format('.00000')})*DLOG((PMUDL))+({#pmvx_param[2].format('.00000')})*DLOG(1/EFKRKS)
+                             +({#pmvx_param[3].format('.00000')})*(LOG(PMVX[-1])-LOG(PMUDL[-1]/EFKRKS[-1]))
+							 +({#pmvx_param[4].format('.00000')})*(LOG(PMVX[-1])-LOG(MULC[-1]))
+							 +({#pmvx_param[5].format('.00000')})*(.001)*TREND+({#pmvx_param[6].format('.00000')}) ;';
+TELL 'FRML _SJRD   LOG(POFFYD)=({#poffyd_param[1].format('.00000')})*LOG((MKV*({%im_poffyd.format('.000')}))*PMVX
+                                    +(1-MKV*({%im_poffyd.format('.000')}))*({%ww_poffyd.format('.000')})*LO
+                                    +(1-MKV*({%im_poffyd.format('.000')}))*(1-({%ww_poffyd.format('.000')}))*RESTX/({%mrestx.format('.00000')}))
+									+({#poffyd_param[2].format('.00000')})*(.001)*TREND+({#poffyd_param[3].format('.00000')}) ;';
+TELL 'FRML _SJRD   DLOG(PXDEN)=({#pxden_param[1].format('.00000')})*DLOG((PXUDL/EFKRKS))+({#pxden_param[2].format('.00000')})*DLOG((EFKRKS))
+                              +({#pxden_param[3].format('.00000')})*DLOG((MULC))+({#pxden_param[4].format('.00000')})*LOG(PXDEN[-1]/EFKRKS[-1])
+							  +({#pxden_param[5].format('.00000')})*LOG(PXUDL[-1]/EFKRKS[-1])+({#pxden_param[6].format('.00000')})*LOG(MULC[-1])
+							  +({#pxden_param[7].format('.00000')})*(.001)*TREND+({#pxden_param[8].format('.00000')})+DLOG((EFKRKS)) ;';
+TELL 'FRML _GJ_D   DLOG(PYFE)=DLOG(PMBRA) ;';
+TELL 'FRML _GJ_D   DLOG(PYFH)=DLOG(RESTX) ;';
+TELL 'FRML _DJ_D__ NCP=({%ncp_restx.format('.0000')})*RESTX+({%ncp_pimpor.format('.0000')})*PIMPOR+({%ncp_pener.format('.0000')})*PENER+({%ncp_phusl.format('.0000')})*PHUSL+({%ncp_pfodev.format('.0000')})*PFODEV+({%ncp_poffyd.format('.0000')})*POFFYD ;';
+TELL 'FRML _DJ_D__ NCP_HICP=(({%ncp_restx.format('.0000')})*RESTX+({%ncp_pimpor.format('.0000')})*PIMPOR+({%ncp_pener.format('.0000')})*PENER+({%ncp_hicp_phusl.format('.0000')})*PHUSL+({%ncp_pfodev.format('.0000')})*PFODEV+({%ncp_poffyd.format('.0000')})*POFFYD)/(1-({%ncp_phusl.format('.0000')})+({%ncp_hicp_phusl.format('.0000')})) ;';
+TELL 'FRML _DJ_D__ PCB=(1+BTGB*TG)*(1+TRB)*QCB ;';
+TELL 'FRML _D      PCO=(PCOW*FCOW+PIOV*FIOV+PCOV*FCOV)/FCO ;';
+TELL 'FRML _DJ_D__ PCOV=(1+BTGCOV*TG)*(QCOV+TPKCOV) ;';
+TELL 'FRML _DJ_D__ PCOW=YWO/FCOW ;';
+TELL 'FRML _GJRD   LOG(PYFLA)=1.37*LOG(PEFOED)-.37*LOG(PMVX) ;';
+TELL 'FRML _SJRD   LOG(QCB)=({#qcb_param[1].format('.00000')})*LOG(MKV*({%im_qcb.format('.000')})*PMVX+(1-MKV*({%im_qcb.format('.000')}))*RESTX/({%mrestx.format('.00000')}))
+                           +({#qcb_param[2].format('.00000')})*(.001)*TREND+({#qcb_param[3].format('.00000')}) ;';
+TELL 'FRML _SJRD   LOG(QCOV)=({#qcov_param[1].format('.00000')})*LOG(MKV*({%im_qcov.format('.0000')})*PMVX+(1-MKV*({%im_qcov.format('.000')}))*(({%e_qcov.format('.0000')})/(({%e_qcov.format('.0000')})+({%ww_qcov.format('.0000')})))*(0.5*PMBRA+0.5*PYFE)
+							+(1-MKV*({%im_qcov.format('.0000')}))*(({%ww_qcov.format('.0000')})/(({%e_qcov.format('.0000')})+({%ww_qcov.format('.0000')})))*RESTX/({%mrestx.format('.00000')}))
+							+({#qcov_param[2].format('.00000')})*(.001)*TREND+({#qcov_param[3].format('.00000')}) ;';
+TELL 'FRML _GJRD   LOG(QCQ)=LOG(({%im_qcpxh.format('.000')})*(MKV/({%mkv80.format('.000')}))*PIMPOR+(1-(({%im_qcpxh.format('.000')}))*(MKV/({%mkv80.format('.000')})))
+                         *(({%qcq_restx.format('.0000')})*RESTX+({%qcq_pener.format('.0000')})*PENER+({%qcq_pfodev.format('.0000')})*PFODEV+({%qcq_poffyd.format('.0000')})*POFFYD
+						 -(1-(MKV/({%mkv80.format('.000')}))*({%im_qcb.format('.0000')}))*({%qcq_qcb.format('.00000')})*QCB/({%qcb80.format('.00000')}))) ;';
+TELL 'FRML _SJRD   DLOG(QIB)=({#qib_param[1].format('.00000')})*DLOG(QIB[-2])+({#qib_param[2].format('.00000')})*DLOG(LNIO)  
+                             +({#qib_param[3].format('.00000')})*DLOG(pmvx+tmvx)+({#qib_param[4].format('.00000')})*D88Q1 
+							 +({#qib_param[5].format('.00000')})*(LOG(QIB[-1])-LOG(({%im_qib.format('.00000')})*MKV[-1]*(PMVX[-1]+TMVX[-1])/({%xx_qib.format('.00000')}) 
+							 +(1-({%im_qib.format('.00000')})*MKV[-1])*MULC[-1]/({%mmulc.format('.00000')}))) 
+							 +({#qib_param[6].format('.00000')})*(.001)*TREND+({#qib_param[7].format('.00000')}) ;';
+TELL 'FRML _SJRD   DLOG(QIM)= ({#qim_param[1].format('.00000')})*DLOG((PM59))
+                             +({#qim_param[2].format('.00000')})*(LOG(QIM[-1])-LOG(MKV[-1]*({%im_qim.format('.000')})*PM59[-1]+(1-MKV[-1]*({%im_qim.format('.000')}))*MULC[-1]/({%mmulc.format('.00000')})))
+							 +({#qim_param[3].format('.00000')})*(.001)*TREND+({#qim_param[4].format('.00000')}) ;';
+TELL 'FRML _D      PCP=(PCQ*FCQ+PCB*FCB+PCH*FCH+PMT*FMT-PET*FET)/FCP ;';
+TELL 'FRML _DJ_D__ PCQ=(1+BTGQ*TG)*(QCQ+TPKQ) ;';
+TELL 'FRML _DJ_D__ PCUN=({#PCUN_param[1].format('.00000')})*(.001)*YTR ;';
+TELL 'FRML _D      PDEMAND=(YF-FILVG*PILVG+FM*PM)/DEMAND ;';
+TELL 'FRML _D      PE=E/FE ;';
+TELL 'FRML _DJ_D__ PENSATS=EXP(LOGPENSATS) ;';
+TELL 'FRML _D      PEV=EV/FEV ;';
+TELL 'FRML _DJ_D__ PILVG=PDEMAND ;';
+TELL 'FRML _D      PIO=(PIOM*FIOM+PIOB*FIOB)/FIO ;';
+TELL 'FRML _D      PIPBXE=(PIPB*FIPB-PIEB*FIEB)/FIPBXE ;';
+TELL 'FRML _D      PIPMXE=(PIPM*FIPM-PIY*FIY-PIEM*FIEM)/FIPMXE ;';
+TELL 'FRML _DJ_D__ PKAFG=TPKYBX*FYFBX+TPKQ*FCQ+TPKCOV*FCOV ;';
+TELL 'FRML _D      PM=M/FM ;';
+TELL 'FRML _DJ_D__ PM59=EXP(LOGPM59) ;';
+TELL 'FRML _D      PMV=MV/FMV ;';
+TELL 'FRML _DJ_D__ PXMBRA=(0.0039*FCB*PCB+0.0044*FCH*PCH+0.0323*FCQ*PCQ+0.0251*FCOV*PCOV+0.0063*(FIOM*PIOM+FIPM*PIPM)+0.0169*(FIPB*PIPB+FIOB*PIOB)+0.0128*FIH*PIH+0.0411*FIT*PIT+0.3065*FILVG*PILVG+0.0304*FEFOED*PEFOED+0.0212*FERAAV*PERAAV+0.8844*(FEOL*PEOL+FEBRA*PEBRA)+0.0079*FEIND*PEIND+0.0023*FEY*PEY+0.1003*FES*PES)/XFMBRA ;';
+TELL 'FRML _DJ_D__ PXMVX=(0.3814*FCB*PCB+0.0352*FCH*PCH+0.1433*FCQ*PCQ+0.2304*FCOV*PCOV+0.2818*(FIOM*PIOM+FIPM*PIPM-FIY*PIY)+0.0878*FIY*PIY+0.1195*(FIPB*PIPB+FIOB*PIOB)+0.1021*FIH*PIH+0.2750*FIT*PIT+0.2651*FILVG*PILVG+0.3409*FEFOED*PEFOED+0.4522*FERAAV*PERAAV+0.0188*(FEOL*PEOL+FEBRA*PEBRA)+0.4011*FEIND*PEIND+0.1032*FEY*PEY+0.0327*FES*PES)/XFMVX ;';
+TELL 'FRML _D      PYF=YF/FYF ;';
+TELL 'FRML _D      PYFBX=YFBX/FYFBX ;';
+TELL 'FRML _D      PYFPX=YFPX/FYFPX ;';
+TELL 'FRML _D      PYTR=YTR/FYTR ;';
+
+TELL '//###MONAMEMO og afledte';
+TELL '// Erhvervsinvesteringer';
+TELL 'FRML _D      FIERHV    = (PIPM_LA*FIPM+PIPB_LA*FIPB+PIT_LA*FIT)/PIERHV_LA   ;';
+TELL 'FRML _I      IPM       =  PIPM*FIPM ;';
+TELL 'FRML _I      IPB       =  PIPB*FIPB ;';
+TELL 'FRML _I      IT        =  PIT*FIT   ;';
+TELL 'FRML _D      IERHV     = (IPM+IPB+IT)    ;';
+TELL 'FRML _I      PIERHV    =  IERHV/FIERHV    ;';
+TELL 'FRML _D      PIERHV_LA =  SEA1*(IERHV[-1] + IERHV[-2] + IERHV[-3] + IERHV[-4])/(FIERHV[-1] + FIERHV[-2] + FIERHV[-3] + FIERHV[-4]) + (1 - SEA1)*PIERHV_LA[-1] ;';
+TELL '// Private investeringer';
+TELL 'FRML _D      FIP       = ( PIERHV_LA*FIERHV + PIH_LA*FIH + PILVG_LA*FILVG) / PIP_LA ;';
+TELL 'FRML _I      IH        = PIH*FIH;';
+TELL 'FRML _I      ILVG      = PILVG*FILVG    ;';
+TELL 'FRML _D      IP        = IERHV + IH +ILVG ;';
+TELL 'FRML _D      PIP       = IP/FIP;';
+TELL 'FRML _D      PIP_LA    = SEA1*( IP[-1] + IP[-2] + IP[-3] + IP[-4] )/( FIP[-1] + FIP[-2] + FIP[-3] + FIP[-4] ) + (1 - SEA1)*PIP_LA[-1];';
+TELL '// Faste bruttoinvesteringer';
+TELL 'FRML _D      FIFA      = ( PIERHV_LA*FIERHV + PIH_LA*FIH + PIO_LA*FIO )/PIFA_LA ;'; 
+TELL 'FRML _I      IO        =   PIO*FIO       ;';
+TELL 'FRML _I      IFA       = IERHV + IH + IO ;';
+TELL 'FRML _I      PIFA      = IFA/FIFA        ;';
+TELL 'FRML _D      PIFA_LA   = SEA1*( IFA[-1] + IFA[-2] + IFA[-3] + IFA[-4] )/( FIFA[-1] + FIFA[-2] + FIFA[-3] + FIFA[-4] ) + (1 - SEA1)*PIFA_LA[-1] ;';
+TELL '// Endelig efterspørgsel';
+TELL 'FRML _D      FYD       = ( PY_LA*FY + PM_LA*FM )/PYD_LA;';
+TELL 'FRML _I      YD        =   Y + M ;';
+TELL 'FRML _I      PYD       = YD/FYD  ;';
+TELL 'FRML _D      PYD_LA    = SEA1*( YD[-1] + YD[-2] + YD[-3] + YD[-4] ) / ( FYD[-1] + FYD[-2] + FYD[-3] + FYD[-4] ) + ( 1 - SEA1 )*PYD_LA[-1] ;';
+TELL '// Indenlandsk efterspørgsel i alt, ekskl. lagerinvesteringer';
+TELL 'FRML _D      FYTRXIL    =  ( PYTR_LA*FYTR - PILVG_LA*FILVG ) / PYTRXIL_LA ;';
+TELL 'FRML _D      YTRXIL     =    YTR - ILVG ;';
+TELL 'FRML _D      PYTRXIL    =    YTRXIL/FYTRXIL ;';
+TELL 'FRML _D      PYTRXIL_LA = SEA1*( YTRXIL[-1] + YTRXIL[-2] + YTRXIL[-3] + YTRXIL[-4] ) / ( FYTRXIL[-1] + FYTRXIL[-2] + FYTRXIL[-3] + FYTRXIL[-4] ) + ( 1 - SEA1 )*PYTRXIL_LA[-1] ;';
+TELL '// Erhvervsmæssig BVT i alt (privat sektor ekskl. boliger)';
+TELL 'FRML _D      FYFPXH     = ( PYFPX_LA*FYFPX + PYFE_LA*FYFE )/PYFPXH_LA ;';
+TELL 'FRML _I      YFE        = PYFE*FYFE ;'; 
+TELL 'FRML _I      YFPXH      = YFPX + YFE ;';
+TELL 'FRML _I      PYFPXH     = YFPXH/FYFPXH ;'; 
+TELL 'FRML _D      PYFPXH_LA    = SEA1*( YFPXH[-1] + YFPXH[-2] + YFPXH[-3] + YFPXH[-4] ) / ( FYFPXH[-1] + FYFPXH[-2] + FYFPXH[-3] + FYFPXH[-4] ) + ( 1 - SEA1 )*PYFPXH_LA[-1] ;';
+TELL '// Privat forbrug ekskl. bolig';
+TELL 'FRML _D      FCPXH      = ( PCP_LA*FCP - PCH_LA*FCH )/PCPXH_LA ;';
+TELL 'FRML _I      CP         =   PCP*FCP ;';
+TELL 'FRML _I      CH         =   PCH*FCH ;';
+TELL 'FRML _I      CPXH       =   CP - CH ;';
+TELL 'FRML _I      PCPXH      =   CPXH/FCPXH ;';
+TELL 'FRML _D      PCPXH_LA     = SEA1*( CPXH[-1] + CPXH[-2] + CPXH[-3] + CPXH[-4] ) / ( FCPXH[-1] + FCPXH[-2] + FCPXH[-3] + FCPXH[-4] ) + ( 1 - SEA1 )*PCPXH_LA[-1] ;';
+TELL '// Privat indenlandsk efterspørgsel i alt, ekskl. lagerinvesteringer';
+TELL 'FRML _D      FCIP       = ( PCP_LA*FCP + PIERHV_LA*FIERHV + PIH_LA*FIH )/PCIP_LA ;';
+TELL 'FRML _I      CIP        = CP + IERHV + IH ;';
+TELL 'FRML _I      PCIP       = CIP/FCIP ;';
+TELL 'FRML _D      PCIP_LA    = SEA1*( CIP[-1] + CIP[-2] + CIP[-3] + CIP[-4] ) / ( FCIP[-1] + FCIP[-2] + FCIP[-3] + FCIP[-4] ) + ( 1 - SEA1 )*PCIP_LA[-1] ;';
+TELL '// Offentligt forbrug og investeringer';
+TELL 'FRML _D      FCIO       = ( PCO_LA*FCO + PIO_LA*FIO)/PCIO_LA ;';
+TELL 'FRML _I      CO         = PCO*FCO  ;';
+TELL 'FRML _I      CIO        = CO + IO  ;';
+TELL 'FRML _I      PCIO       = CIO/FCIO ;';
+TELL 'FRML _D      PCIO_LA    =  SEA1*( CIO[-1] + CIO[-2] + CIO[-3] + CIO[-4] ) / ( FCIO[-1] + FCIO[-2] + FCIO[-3] + FCIO[-4] ) + ( 1 - SEA1 )*PCIO_LA[-1] ;';
+TELL '// Offentligt vare- og tjenestekøb samt re-investeringer';
+TELL 'FRML _D      FCIOV      = ( PCOV_LA*FCOV + PIOV_LA*FIOV )/ PCIOV_LA ;';
+TELL 'FRML _I      COV        =   PCOV*FCOV ;';
+TELL 'FRML _I      CIOV       =   COV + IOV ;';
+TELL 'FRML _I      PCIOV      = CIOV/FCIOV  ;'; 
+TELL 'FRML _D      PCIOV_LA   =  SEA1*( CIOV[-1] + CIOV[-2] + CIOV[-3] + CIOV[-4] ) / ( FCIOV[-1] + FCIOV[-2] + FCIOV[-3] + FCIOV[-4] ) + ( 1 - SEA1 )*PCIOV_LA[-1] ;';
+TELL '// Materielinvesteringer i alt ekskl. skibe og fly ';
+TELL 'FRML _D      FIMXY      = ( PIPM_LA*FIPM + PIOM_LA*FIOM - PIY_LA*FIY )/PIMXY_LA ;';
+TELL 'FRML _I      IOM        = PIOM*FIOM ;';
+TELL 'FRML _I      IMXY       = IPM + IOM - IY ;';
+TELL 'FRML _I      PIMXY      = IMXY/FIMXY;';
+TELL 'FRML _D      PIMXY_LA   =  SEA1*( IMXY[-1] + IMXY[-2] + IMXY[-3] + IMXY[-4] ) / ( FIMXY[-1] + FIMXY[-2] + FIMXY[-3] + FIMXY[-4] ) + ( 1 - SEA1 )*PIMXY_LA[-1] ;';
+TELL '// Materielinvesteringer i alt ';
+TELL 'FRML _D      FIM        = ( PIPM_LA*FIPM + PIOM_LA*FIOM )/PIM_LA ;';
+TELL 'FRML _I      IM         =   IPM + IOM ;';
+TELL 'FRML _I      PIM        =  IM/FIM ;';
+TELL 'FRML _D      PIM_LA     =  SEA1*( IM[-1] + IM[-2] + IM[-3] + IM[-4] ) / ( FIM[-1] + FIM[-2] + FIM[-3] + FIM[-4] ) + ( 1 - SEA1 )*PIM_LA[-1] ;';
+TELL '// Bygge- og anlægsinvesteringer i alt';
+TELL 'FRML _D      FIB        = ( PIPB_LA*FIPB + PIOB_LA*FIOB + PIH_LA*FIH)/PIB_LA ;';
+TELL 'FRML _I      IOB        =   PIOB*FIOB ;';
+TELL 'FRML _I      IB         =   IPB + IOB + IH ;';
+TELL 'FRML _I      PIB        =   IB/FIB ;';
+TELL 'FRML _D      PIB_LA     =  SEA1*( IB[-1] + IB[-2] + IB[-3] + IB[-4] ) / ( FIB[-1] + FIB[-2] + FIB[-3] + FIB[-4] ) + ( 1 - SEA1 )*PIB_LA[-1] ;';
+TELL '//Eksport af tjenester inkl. turisme';
+TELL 'FRML _D      FEST       = ( PET_LA*FET + PES_LA*FES )/PEST_LA ;';
+TELL 'FRML _I      ET         =   PET*FET ;';
+TELL 'FRML _I      ES         =   PES*FES ;';
+TELL 'FRML _I      EST        =   ET + ES ;';
+TELL 'FRML _I      PEST       =   EST/FEST ;';
+TELL 'FRML _D      PEST_LA    =  SEA1*( EST[-1] + EST[-2] + EST[-3] + EST[-4] ) / ( FEST[-1] + FEST[-2] + FEST[-3] + FEST[-4] ) + ( 1 - SEA1 )*PEST_LA[-1] ;';
+TELL '// Import ekskl. brændsel, skibe og fly';
+TELL 'FRML _D      FMVXBRAY    =  ( PMV_LA*FMV - PMBRA_LA*FMBRA - PMY_LA*FMY )/PMVXBRAY_LA;';
+TELL 'FRML _I      MBRA        =    PMBRA*FMBRA ;';
+TELL 'FRML _I      MY          =    PMY*FMY ;';
+TELL 'FRML _I      MVXBRAY     =    MV - MBRA - MY ;';
+TELL 'FRML _I      PMVXBRAY    =    MVXBRAY/FMVXBRAY ;';
+TELL 'FRML _D      PMBRA_LA    = SEA1*( MBRA[-1] + MBRA[-2] + MBRA[-3] + MBRA[-4] ) / ( FMBRA[-1] + FMBRA[-2] + FMBRA[-3] + FMBRA[-4] ) + ( 1 - SEA1 )*PMBRA_LA[-1];';
+TELL 'FRML _D      PMVXBRAY_LA =  SEA1*( MVXBRAY[-1] + MVXBRAY[-2] + MVXBRAY[-3] + MVXBRAY[-4] ) / ( FMVXBRAY[-1] + FMVXBRAY[-2] + FMVXBRAY[-3] + FMVXBRAY[-4] ) + ( 1 - SEA1 )*PMVXBRAY_LA[-1] ;';
+
+TELL '//###TEKNIK';
+TELL 'FRML _D      DFSI_LA=SEA1*(((SIAF[-1]-SIQEJ[-1]-SIQV[-1]-SIQAM[-1]-SIQUAB[-1]-SIQR[-1])-SISUB[-1]+SIQS[-1]+SIE[-1])+((SIAF[-2]-SIQEJ[-2]-SIQV[-2]-SIQAM[-2]-SIQUAB[-2]-SIQR[-2])-SISUB[-2]+SIQS[-2]+SIE[-2])+((SIAF[-3]-SIQEJ[-3]-SIQV[-3]-SIQAM[-3]-SIQUAB[-3]-SIQR[-3])-SISUB[-3]+SIQS[-3]+SIE[-3])+((SIAF[-4]-SIQEJ[-4]-SIQV[-4]-SIQAM[-4]-SIQUAB[-4]-SIQR[-4])-SISUB[-4]+SIQS[-4]+SIE[-4]))/(FSI[-1]+FSI[-2]+FSI[-3]+FSI[-4])+(1-SEA1)*DFSI_LA[-1] ;';
+TELL 'FRML _D      PCB_LA=SEA1*(PCB[-1]*FCB[-1]+PCB[-2]*FCB[-2]+PCB[-3]*FCB[-3]+PCB[-4]*FCB[-4])/(FCB[-1]+FCB[-2]+FCB[-3]+FCB[-4])+(1-SEA1)*PCB_LA[-1] ;';
+TELL 'FRML _GJ_D   DLOG(PKB_LA)=DLOG(PIPBXE_LA) ;';
+TELL 'FRML _GJRD   LOG(PKM_LA)=LOG(PIPMXE_LA)+0.022829*DST85A[-4]-0.022808*DST00A[-4]-0.346484 ;';
+TELL 'FRML _D      PCH_LA=SEA1*(PCH[-1]*FCH[-1]+PCH[-2]*FCH[-2]+PCH[-3]*FCH[-3]+PCH[-4]*FCH[-4])/(FCH[-1]+FCH[-2]+FCH[-3]+FCH[-4])+(1-SEA1)*PCH_LA[-1] ;';
+TELL 'FRML _D      PCOW_LA=SEA1*(PCOW[-1]*FCOW[-1]+PCOW[-2]*FCOW[-2]+PCOW[-3]*FCOW[-3]+PCOW[-4]*FCOW[-4])/(FCOW[-1]+FCOW[-2]+FCOW[-3]+FCOW[-4])+(1-SEA1)*PCOW_LA[-1] ;';
+TELL 'FRML _D      PCO_LA=SEA1*(PCO[-1]*FCO[-1]+PCO[-2]*FCO[-2]+PCO[-3]*FCO[-3]+PCO[-4]*FCO[-4])/(FCO[-1]+FCO[-2]+FCO[-3]+FCO[-4])+(1-SEA1)*PCO_LA[-1] ;';
+TELL 'FRML _D      PCP_LA=SEA1*(PCP[-1]*FCP[-1]+PCP[-2]*FCP[-2]+PCP[-3]*FCP[-3]+PCP[-4]*FCP[-4])/(FCP[-1]+FCP[-2]+FCP[-3]+FCP[-4])+(1-SEA1)*PCP_LA[-1] ;';
+TELL 'FRML _D      PCQ_LA=SEA1*(PCQ[-1]*FCQ[-1]+PCQ[-2]*FCQ[-2]+PCQ[-3]*FCQ[-3]+PCQ[-4]*FCQ[-4])/(FCQ[-1]+FCQ[-2]+FCQ[-3]+FCQ[-4])+(1-SEA1)*PCQ_LA[-1] ;';
+TELL 'FRML _D      PEOL_LA=0*(SEA1*(PEOL[-1]*FEOL[-1]+PEOL[-2]*FEOL[-2]+PEOL[-3]*FEOL[-3]+PEOL[-4]*FEOL[-4])/(FEOL[-1]+FEOL[-2]+FEOL[-3]+FEOL[-4]+1)+(1-SEA1)*PEOL_LA[-1])+1*PEBRA_LA ;';
+TELL 'FRML _D      PDEMAND_LA=SEA1*(PDEMAND[-1]*DEMAND[-1]+PDEMAND[-2]*DEMAND[-2]+PDEMAND[-3]*DEMAND[-3]+PDEMAND[-4]*DEMAND[-4])/(DEMAND[-1]+DEMAND[-2]+DEMAND[-3]+DEMAND[-4])+(1-SEA1)*PDEMAND_LA[-1] ;';
+TELL 'FRML _D      PERAAV_LA=SEA1*(PERAAV[-1]*FERAAV[-1]+PERAAV[-2]*FERAAV[-2]+PERAAV[-3]*FERAAV[-3]+PERAAV[-4]*FERAAV[-4])/(FERAAV[-1]+FERAAV[-2]+FERAAV[-3]+FERAAV[-4])+(1-SEA1)*PERAAV_LA[-1] ;';
+TELL 'FRML _D      PES_LA=SEA1*(PES[-1]*FES[-1]+PES[-2]*FES[-2]+PES[-3]*FES[-3]+PES[-4]*FES[-4])/(FES[-1]+FES[-2]+FES[-3]+FES[-4])+(1-SEA1)*PES_LA[-1] ;';
+TELL 'FRML _D      PET_LA=SEA1*(PET[-1]*FET[-1]+PET[-2]*FET[-2]+PET[-3]*FET[-3]+PET[-4]*FET[-4])/(FET[-1]+FET[-2]+FET[-3]+FET[-4])+(1-SEA1)*PET_LA[-1] ;';
+TELL 'FRML _D      PEV_LA=SEA1*(EV[-1]+EV[-2]+EV[-3]+EV[-4])/(FEV[-1]+FEV[-2]+FEV[-3]+FEV[-4])+(1-SEA1)*PEV_LA[-1] ;';
+TELL 'FRML _D      PEY_LA=SEA1*(PEY[-1]*FEY[-1]+PEY[-2]*FEY[-2]+PEY[-3]*FEY[-3]+PEY[-4]*FEY[-4])/(FEY[-1]+FEY[-2]+FEY[-3]+FEY[-4])+(1-SEA1)*PEY_LA[-1] ;';
+TELL 'FRML _D      PE_LA=SEA1*(E[-1]+E[-2]+E[-3]+E[-4])/(FE[-1]+FE[-2]+FE[-3]+FE[-4])+(1-SEA1)*PE_LA[-1] ;';
+TELL 'FRML _D      PIEM_LA=SEA1*(PIEM[-1]*FIEM[-1]+PIEM[-2]*FIEM[-2]+PIEM[-3]*FIEM[-3]+PIEM[-4]*FIEM[-4])/(FIEM[-1]+FIEM[-2]+FIEM[-3]+FIEM[-4])+(1-SEA1)*PIEM_LA[-1] ;';
+TELL 'FRML _D      PIH_LA=SEA1*(PIH[-1]*FIH[-1]+PIH[-2]*FIH[-2]+PIH[-3]*FIH[-3]+PIH[-4]*FIH[-4])/(FIH[-1]+FIH[-2]+FIH[-3]+FIH[-4])+(1-SEA1)*PIH_LA[-1] ;';
+TELL 'FRML _D      PILVG_LA=SEA1*(PILVG[-1]*FILVG[-1]+PILVG[-2]*FILVG[-2]+PILVG[-3]*FILVG[-3]+PILVG[-4]*FILVG[-4])/(FILVG[-1]+FILVG[-2]+FILVG[-3]+FILVG[-4])+(1-SEA1)*PILVG_LA[-1] ;';
+TELL 'FRML _D      PIOB_LA=SEA1*(PIOB[-1]*FIOB[-1]+PIOB[-2]*FIOB[-2]+PIOB[-3]*FIOB[-3]+PIOB[-4]*FIOB[-4])/(FIOB[-1]+FIOB[-2]+FIOB[-3]+FIOB[-4])+(1-SEA1)*PIOB_LA[-1] ;';
+TELL 'FRML _D      PIOM_LA=SEA1*(PIOM[-1]*FIOM[-1]+PIOM[-2]*FIOM[-2]+PIOM[-3]*FIOM[-3]+PIOM[-4]*FIOM[-4])/(FIOM[-1]+FIOM[-2]+FIOM[-3]+FIOM[-4])+(1-SEA1)*PIOM_LA[-1] ;';
+TELL 'FRML _D      PIOV_LA=SEA1*(PIOV[-1]*FIOV[-1]+PIOV[-2]*FIOV[-2]+PIOV[-3]*FIOV[-3]+PIOV[-4]*FIOV[-4])/(FIOV[-1]+FIOV[-2]+FIOV[-3]+FIOV[-4])+(1-SEA1)*PIOV_LA[-1] ;';
+TELL 'FRML _D      PIO_LA=SEA1*(PIO[-1]*FIO[-1]+PIO[-2]*FIO[-2]+PIO[-3]*FIO[-3]+PIO[-4]*FIO[-4])/(FIO[-1]+FIO[-2]+FIO[-3]+FIO[-4])+(1-SEA1)*PIO_LA[-1] ;';
+TELL 'FRML _D      PIPBXE_LA=SEA1*(PIPBXE[-1]*FIPBXE[-1]+PIPBXE[-2]*FIPBXE[-2]+PIPBXE[-3]*FIPBXE[-3]+PIPBXE[-4]*FIPBXE[-4])/(FIPBXE[-1]+FIPBXE[-2]+FIPBXE[-3]+FIPBXE[-4])+(1-SEA1)*PIPBXE_LA[-1] ;';
+TELL 'FRML _D      PIPB_LA=SEA1*(FIPB[-1]*PIPB[-1]+FIPB[-2]*PIPB[-2]+FIPB[-3]*PIPB[-3]+FIPB[-4]*PIPB[-4])/(FIPB[-1]+FIPB[-2]+FIPB[-3]+FIPB[-4])+(1-SEA1)*PIPB_LA[-1] ;';
+TELL 'FRML _D      PIPMXE_LA=SEA1*(PIPMXE[-1]*FIPMXE[-1]+PIPMXE[-2]*FIPMXE[-2]+PIPMXE[-3]*FIPMXE[-3]+PIPMXE[-4]*FIPMXE[-4])/(FIPMXE[-1]+FIPMXE[-2]+FIPMXE[-3]+FIPMXE[-4])+(1-SEA1)*PIPMXE_LA[-1] ;';
+TELL 'FRML _D      PIPM_LA=SEA1*(FIPM[-1]*PIPM[-1]+FIPM[-2]*PIPM[-2]+FIPM[-3]*PIPM[-3]+FIPM[-4]*PIPM[-4])/(FIPM[-1]+FIPM[-2]+FIPM[-3]+FIPM[-4])+(1-SEA1)*PIPM_LA[-1] ;';
+TELL 'FRML _D      PIT_LA=SEA1*(FIT[-1]*PIT[-1]+FIT[-2]*PIT[-2]+FIT[-3]*PIT[-3]+FIT[-4]*PIT[-4])/(FIT[-1]+FIT[-2]+FIT[-3]+FIT[-4])+(1-SEA1)*PIT_LA[-1] ;';
+TELL 'FRML _D      PIY_LA=SEA1*(IY[-1]+IY[-2]+IY[-3]+IY[-4])/(FIY[-1]+FIY[-2]+FIY[-3]+FIY[-4])+(1-SEA1)*PIY_LA[-1] ;';
+TELL 'FRML _D      PMBRAOL_LA=SEA1*(PMBRA[-1]*(FMBRA[-1]+FMOL[-1])+PMBRA[-2]*(FMBRA[-2]+FMOL[-2])+PMBRA[-3]*(FMBRA[-3]+FMOL[-3])+PMBRA[-4]*(FMBRA[-4]+FMOL[-4]))/(FMBRA[-1]+FMBRA[-2]+FMBRA[-3]+FMBRA[-4]+FMOL[-1]+FMOL[-2]+FMOL[-3]+FMOL[-4])+(1-SEA1)*PMBRAOL_LA[-1] ;';
+TELL 'FRML _D      PMS_LA=SEA1*(PMS[-1]*FMS[-1]+PMS[-2]*FMS[-2]+PMS[-3]*FMS[-3]+PMS[-4]*FMS[-4])/(FMS[-1]+FMS[-2]+FMS[-3]+FMS[-4])+(1-SEA1)*PMS_LA[-1] ;';
+TELL 'FRML _D      PMT_LA=SEA1*(PMT[-1]*FMT[-1]+PMT[-2]*FMT[-2]+PMT[-3]*FMT[-3]+PMT[-4]*FMT[-4])/(FMT[-1]+FMT[-2]+FMT[-3]+FMT[-4])+(1-SEA1)*PMT_LA[-1] ;';
+TELL 'FRML _D      PMVX_LA=SEA1*(PMVX[-1]*FMVX[-1]+PMVX[-2]*FMVX[-2]+PMVX[-3]*FMVX[-3]+PMVX[-4]*FMVX[-4])/(FMVX[-1]+FMVX[-2]+FMVX[-3]+FMVX[-4])+(1-SEA1)*PMVX_LA[-1] ;';
+TELL 'FRML _D      PMV_LA=SEA1*(MV[-1]+MV[-2]+MV[-3]+MV[-4])/(FMV[-1]+FMV[-2]+FMV[-3]+FMV[-4])+(1-SEA1)*PMV_LA[-1] ;';
+TELL 'FRML _D      PMY_LA=SEA1*(FMY[-1]*PMY[-1]+FMY[-2]*PMY[-2]+FMY[-3]*PMY[-3]+FMY[-4]*PMY[-4])/(FMY[-1]+FMY[-2]+FMY[-3]+FMY[-4])+(1-SEA1)*PMY_LA[-1] ;';
+TELL 'FRML _D      PM_LA=SEA1*(M[-1]+M[-2]+M[-3]+M[-4])/(FM[-1]+FM[-2]+FM[-3]+FM[-4])+(1-SEA1)*PM_LA[-1] ;';
+TELL 'FRML _D      PXMBRA_LA=SEA1*((XFMBRA[-1]*PXMBRA[-1]+XFMBRA[-2]*PXMBRA[-2]+XFMBRA[-3]*PXMBRA[-3]+XFMBRA[-4]*PXMBRA[-4])/(XFMBRA[-1]+XFMBRA[-2]+XFMBRA[-3]+XFMBRA[-4]))+(1-SEA1)*PXMBRA_LA[-1] ;';
+TELL 'FRML _D      PXMVX_LA=SEA1*((XFMVX[-1]*PXMVX[-1]+XFMVX[-2]*PXMVX[-2]+XFMVX[-3]*PXMVX[-3]+XFMVX[-4]*PXMVX[-4])/(XFMVX[-1]+XFMVX[-2]+XFMVX[-3]+XFMVX[-4]))+(1-SEA1)*PXMVX_LA[-1] ;';
+TELL 'FRML _D      PYFBX_LA=SEA1*(YFBX[-1]+YFBX[-2]+YFBX[-3]+YFBX[-4])/(FYFBX[-1]+FYFBX[-2]+FYFBX[-3]+FYFBX[-4])+(1-SEA1)*PYFBX_LA[-1] ;';
+TELL 'FRML _D      PYFE_LA=SEA1*(PYFE[-1]*FYFE[-1]+PYFE[-2]*FYFE[-2]+PYFE[-3]*FYFE[-3]+PYFE[-4]*FYFE[-4])/(FYFE[-1]+FYFE[-2]+FYFE[-3]+FYFE[-4])+(1-SEA1)*PYFE_LA[-1] ;';
+TELL 'FRML _D      PYFH_LA=SEA1*(YFH[-1]+YFH[-2]+YFH[-3]+YFH[-4])/(FYFH[-1]+FYFH[-2]+FYFH[-3]+FYFH[-4])+(1-SEA1)*PYFH_LA[-1] ;';
+TELL 'FRML _D      PYFLA_LA=SEA1*(PYFLA[-1]*FYFLA[-1]+PYFLA[-2]*FYFLA[-2]+PYFLA[-3]*FYFLA[-3]+PYFLA[-4]*FYFLA[-4])/(FYFLA[-1]+FYFLA[-2]+FYFLA[-3]+FYFLA[-4])+(1-SEA1)*PYFLA_LA[-1] ;';
+TELL 'FRML _D      PYFO_LA=SEA1*(YFO[-1]+YFO[-2]+YFO[-3]+YFO[-4])/(FYFO[-1]+FYFO[-2]+FYFO[-3]+FYFO[-4])+(1-SEA1)*PYFO_LA[-1] ;';
+TELL 'FRML _D      PYFPX_LA=SEA1*(YFPX[-1]+YFPX[-2]+YFPX[-3]+YFPX[-4])/(FYFPX[-1]+FYFPX[-2]+FYFPX[-3]+FYFPX[-4])+(1-SEA1)*PYFPX_LA[-1] ;';
+TELL 'FRML _D      PYF_LA=SEA1*(YF[-1]+YF[-2]+YF[-3]+YF[-4])/(FYF[-1]+FYF[-2]+FYF[-3]+FYF[-4])+(1-SEA1)*PYF_LA[-1] ;';
+TELL 'FRML _D      PYTR_LA=SEA1*(YTR[-1]+YTR[-2]+YTR[-3]+YTR[-4])/(FYTR[-1]+FYTR[-2]+FYTR[-3]+FYTR[-4])+(1-SEA1)*PYTR_LA[-1] ;';
+TELL 'FRML _D      PY_LA=SEA1*(Y[-1]+Y[-2]+Y[-3]+Y[-4])/(FY[-1]+FY[-2]+FY[-3]+FY[-4])+(1-SEA1)*PY_LA[-1] ;';
+TELL 'FRML _D      PIEB_LA=SEA1*(PIEB[-1]*FIEB[-1]+PIEB[-2]*FIEB[-2]+PIEB[-3]*FIEB[-3]+PIEB[-4]*FIEB[-4])/(FIEB[-1]+FIEB[-2]+FIEB[-3]+FIEB[-4])+(1-SEA1)*PIEB_LA[-1] ;';
+TELL 'FRML _D      PEBRA_LA=SEA1*(PEBRA[-1]*FEBRA[-1]+PEBRA[-2]*FEBRA[-2]+PEBRA[-3]*FEBRA[-3]+PEBRA[-4]*FEBRA[-4])/(FEBRA[-1]+FEBRA[-2]+FEBRA[-3]+FEBRA[-4])+(1-SEA1)*PEBRA_LA[-1] ;';
+TELL 'FRML _D      PEFOED_LA=SEA1*(PEFOED[-1]*FEFOED[-1]+PEFOED[-2]*FEFOED[-2]+PEFOED[-3]*FEFOED[-3]+PEFOED[-4]*FEFOED[-4])/(FEFOED[-1]+FEFOED[-2]+FEFOED[-3]+FEFOED[-4])+(1-SEA1)*PEFOED_LA[-1] ;';
+TELL 'FRML _D      PEIND_LA=SEA1*(PEIND[-1]*FEIND[-1]+PEIND[-2]*FEIND[-2]+PEIND[-3]*FEIND[-3]+PEIND[-4]*FEIND[-4])/(FEIND[-1]+FEIND[-2]+FEIND[-3]+FEIND[-4])+(1-SEA1)*PEIND_LA[-1] ;';
+TELL 'FRML _D      PCOV_LA=SEA1*(PCOV[-1]*FCOV[-1]+PCOV[-2]*FCOV[-2]+PCOV[-3]*FCOV[-3]+PCOV[-4]*FCOV[-4])/(FCOV[-1]+FCOV[-2]+FCOV[-3]+FCOV[-4])+(1-SEA1)*PCOV_LA[-1] ;';
+
+pipe <stop>;

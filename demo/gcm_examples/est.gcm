@@ -1,0 +1,353 @@
+restart;
+
+mode data;
+OPEN <edit> banker\parametre;
+clear parametre;
+
+//ESTIMATIONSBANK
+STRING %ESTBK = 'banker\monabank090216.gbk';
+// FEBANK - Eksportrelationer estimeret på anden bank
+STRING %FEBANK = 'banker\monabank040216.gbk';
+//IO-koefficienter - koefficenterne indgår i relationer som faste koefficienter - Der bør indføres tidsserier i stedet
+//STRING %iobk  
+//Diverse koefficienter - en række koefficienter bestemmes "lejlighedsvis" og oftere end der reestimeres. Der bør ryddes op i dette og indføres tidsserier i stedet
+//STRING 
+
+DATE %est_slut = 2012q4;
+time 1970 %est_slut;
+
+
+
+
+
+
+
+
+
+// Eksport - estimeres først sfa. anden estimationsbank
+
+SERIES <1970q1 1970q1>      trend   = 1970 ;
+SERIES <1970q2 %est_slut>   trend  ^= .25  ;
+
+//LAGERINVESTERINGER ER ESTIMERET PÅ MONA "g:\Modelenheden\MONA\Gekko\model\byg_model\feb2018\banker\monabank180117.gbk "
+OPEN g:\Modelenheden\MONA\Gekko\model\byg_model\feb2018\banker\monabank180117.gbk ;
+OLS <1972q2 2012q4> FILBX_RP (-filbx_rp/demand[-1]) = diff(demand)/demand[-1],(.001)*log(stock[-1]/demand[-1]), dlog(qbyx[-1]);
+close monabank180117;
+
+
+OPEN  %estbk as est;
+
+// **** DATA: skal håndteres i datagenereringsprogrammer
+// men nådvendig for rigtig detrending
+ser RLNIMx=CUM/LNIO;
+ser RLNIBx=CUB/LNIO;
+
+ser feind = ((fev-feoverg)*pev_la-fey*pey_la-feol*peol_la-febra*pebra_la-feani*peani_la-feveg*peveg_la-fekqd*pekqd_la-fepel*pepel_la-fefsk*pefsk_la)/peind_la;
+ser feindx = feind;
+open banker\itcmona;
+ser <1973q1 2003q1> feind = itcmona:kexport*feind.avgt(2000q1,2000q4)/itcmona:kexport.avgt(2000q1,2000q4);  // kun data til 2003q1 / TSH
+close itcmona;
+
+for date %d = 2003q2 to 2012q4;
+ series <2003q2 2012q4> feind = feind[-1]*feindx/feindx[-1];
+end;
+
+time 1970 %est_slut;
+
+// ****************************
+// ******DIVERSE PARAMTRE******
+// ****************************
+// ukendt oprindelse spørg TSH - vedrører imidlertid hovedsagligt finansiel delmodel
+
+// Diverse parametre - oprindelse?
+VAL %a1    =  18.69611    ;VAL %mb2   =  312.686      ;VAL %mb3  = 596.237      ;
+VAL %fff1  =    .06355    ;VAL %mggg5 =     .110428   ;VAL %mz6  =    .286799   ;
+VAL %mh1   =  10.61215    ;VAL %mi1   =    1.119519   ;VAL %mj1  =   9.074269   ;
+VAL %lll1  =   0          ;VAL %kkk1  =    0          ;VAL %p1   =    .711076   ;
+VAL %ma3   =  37.10313    ;VAL %c2    =    0          ;VAL %fff3 =    .382773   ;
+VAL %h3    =   4.409238   ;VAL %mi3   =    1.131977   ;VAL %j3   =   4.140806   ;
+VAL %mkkk3 =    .793374   ;VAL %lll3  =     .398212   ;VAL %z1   =  14.60070    ;
+VAL %z21   =    .398633   ;VAL %mz7   =     .087746   ;VAL %z61  =   5.040692   ;
+VAL %z62   =   1.602059   ;VAL %z63   =    2.272909   ;VAL %mb5  =  47.61801    ;
+VAL %mc5   =   5.297777   ;VAL %ggg3  =    0          ;VAL %lll5 =   0          ;
+VAL %z11   = 675.826      ;VAL %z12   = 2993.65       ;VAL %v3   =    .00691717 ;
+VAL %mv4   =    .00381669 ;VAL %mv5   =    .00219487 ;VAL %mv6   =    .00028140 ;
+
+VAL %p2 = 0.1 ; 
+VAL %ibzhatcof = .00003;
+VAL %mc4 = -(-1/%ibzhatcof + %mb2);
+
+VAL %subelas = .6;
+
+VAL %mrestx = restx.avgt( 2010q1 , 2010q4 ) ;
+val %mmulc  =  mulc.avgt( 2010Q1 , 2010Q4 ) ;
+VAL %qcb80  = qcb.avgt( 1980Q1 , 1980Q4 ) ;
+
+VAL %s1 = 0.266395; //Uklar oprindelse vedrører DLOGXFMVXK undersøg i monagenr.cmd
+
+// Parametre fra prisrelationer - formentlig fra io
+VAL %im_pfodev = 0.278;
+VAL %im_poffyd = 0.1153;
+VAL %ww_poffyx = 0.6675;
+VAL %rr_poffyd = 0.2775;
+VAL %ww_poffyd = %ww_poffyx/(%ww_poffyx+%rr_poffyd);
+//VAL %im_qcb  = 0.5836; // AREMOS regner tilsyneladende kun med 3 betydende decimaler her - derfor lidt 
+VAL %im_qcb    = .584  ;
+VAL %im_qcov   = 0.3728;
+VAL %e_qcov    = 0.0196;
+VAL %ww_qcov   = 0.6076;
+VAL %im_qib    = 0.177 ;
+VAL %im_qim    = 0.473 ; //.4726
+
+VAL %xx_qib    =1.008; //Ukendt parameter i qib-relation
+
+//prisvægte i nettoforbrugerprisindeks (ncp) og (ncp_hicp)
+// disse bør erstattes af tidserier
+// nuværende praksis må give underlige residualer i ncp-ligning tilbage i tid
+// og fejlagtige resultater ved dekomponering af historisk udvikling i ncp
+// Summerer i øvrig ikke til 1??
+VAL %ncp_restx  = 0.3824;
+VAL %ncp_pimpor = 0.2513;
+VAL %ncp_pener  = 0.0775;
+VAL %ncp_phusl  = 0.2162;
+VAL %ncp_pfodev = 0.0532;
+VAL %ncp_poffyd = 0.0255;
+
+VAL %ncp_hicp_phusl  = 0.0818;
+
+//Prisvægte i qcq-relation.
+//SE HER: Bør disse være afstemt med ncp_vægte? qcq-vægte er hard-codet i 
+//monagenr!!!
+VAL %qcq_restx  = 0.3512;
+VAL %qcq_pener  = 0.0876;
+VAL %qcq_pfodev = 0.1397;
+VAL %qcq_poffyd = 0.0367;
+VAL %qcq_qcb    = 0.03097; //?????????
+VAL %im_qcpxh   =  .1493/(1-.2354-0.03097*(1-%im_qcb)); 
+
+
+
+VAL %mkv80 = mkv.avgt(1980q1,1980q4);
+VAL %mrestx = restx.avgt(2010q1, 2010q4);
+
+//Variable i ZBZR-relation. Uklart, hvor de kommer fra! Estimation nedenfor giver samme estimater som i reestimationen fra 9.2.2016 - mapmona refererer til denne dato
+//Alle variable er restrikterede
+
+VAL %zbzr_1 = 278.848   ;
+VAL %zbzr_2 =   7.34194 ;
+VAL %zbzr_3 =   3.76180 ;
+VAL %zbzr_4 =   4.89582 ;
+VAL %zbzr_5 = 199.976   ;
+
+val %vag_gb = (1/btgb.avgt(2010q1,2010q4))*sigcb.avgt(2010q1,2010q4)/sigcp.avgt(2010q1,2010q4)*btgcp_.avgt(2010q1,2010q4);
+val %vag_gh = (1/btgh.avgt(2010q1,2010q4))*sigch.avgt(2010q1,2010q4)/sigcp.avgt(2010q1,2010q4)*btgcp_.avgt(2010q1,2010q4);
+val %vag_gq = (1/btgq.avgt(2010q1,2010q4))*sigcq.avgt(2010q1,2010q4)/sigcp.avgt(2010q1,2010q4)*btgcp_.avgt(2010q1,2010q4);
+
+val %ratio_tp = tpkcp.avgt(2010q1,2010q4)/tpkq.avgt(2010q1,2010q4);
+val %ratio_tr = trcp.avgt(2010q1,2010q4)/trb.avgt(2010q1,2010q4);
+
+k//Snyd her: tuc normeres så den maksimalt når værdien 1 - både normeret og ikke normeret serie navngives
+//imidlertid tuc i monagenr (det skal laves om) - her snydes, så "skriv.gcm" kan laves færdig
+
+series tucx = tuc*1.807896;
+MATRIX #m = pack(1971q2, 2010q4, tucx);VAL %maxtuc = maxc(#m);
+
+
+
+// ************************
+// ******ESTIMATIONER******
+// ************************
+
+// Finansielle
+// ***********
+OLS <1974q2 %est_slut constant = no> BCUN bcun = (.001)*(pdb-pcun+pdsb+ldeb);
+
+OLS <1974q2 %est_slut> IBZHAT ibz-ibodem-dk = (.001)*(((ubzz-fbzz)/pytr - ( -%mb2 * (idp-ibodem-dk) - %mz6 * fytr + %z21 * ww/pytr   -%mz7 * aipb/pytr
+                                             + (-1-%lll1-%lll3-%lll5) * aihb/pytr + %p2 * bwwb/pytr ))),
+                                              sea1,sea2,sea3;
+
+
+OLS <1990q1 %est_slut constant=no> OWPK owpk/wpk_h[-1] = dlog(qq),dlog(ibz);
+
+//'Danish stock price index, long run equation'
+MATRIX #m = [1,0,0,1];
+OLS <1971q1 %est_slut> COQQ log(qq)=log(yfbx+pyfe*fyfe-ywby),log(ibz) impose = #m;
+
+//'Danish stock price index'
+OLS <1971q3 %est_slut> QQ dlog((qq))=dlog(qq.1),diff(ibz),(coqq.1);
+
+//'Private bond debt'
+SER zbzr_xx = -zbzr/pytr      + %mz7*aipb/pytr-(-1-%lll1-%lll3-%lll5)*aihb/pytr
+              -%p1*(-zbzr[-1] + %mz7*aipb[-1] -(-1-%lll1-%lll3-%lll5)*aihb[-1])/pytr;
+			  
+OLS <1974q2 %est_slut> ZBZR zbzr_xx = (ilo-ibz),sea1,sea2,sea3;
+
+//'Deposit rate, long term equation'
+OLS <1974q2 %est_slut> COIDP  idp= ibz,(1-DRAD)*IMM,DRAD*IDI,(1-DRAD)*IDI,DRAD;
+
+// 'Deposit rate'
+OLS <1974q2 %est_slut> IDP diff(idp) = diff(idp[-1]),diff(imm),coidp[-1];
+
+//'Lending rate, long term equation'
+OLS <1974q2 %est_slut> COILO ilo = ibz,(1-DRAL)*IMM,DRAL*IDI,(1-DRAL)*IDI,DRAL,renteml,omkostled;
+
+//'Lending rate'
+OLS <1974q3 %est_slut> ILO diff(ilo)=diff(ilo[-1]),diff(imm),coilo[-1];
+
+//'Paid interest, household'
+OLS <1995q1 %est_slut> TII_H_Z  diff(tii_h_z) =  tii_h_z[-1], ibz[-1]*wq_h_z[-2], diff(ibz*wq_h_z[-1]); 
+
+//'Interest receipts, household'
+OLS <1995q1 %est_slut> TII_Z_H diff(tii_z_h) =  tii_z_h[-1], (ibz[-1]+idp[-1])/2*wq_z_h[-2], diff(idp*wq_z_h[-1]); 
+
+//'Interest receipts, pension schemes'
+OLS <1990 2012 constant = no> TIPK_H Tipk_h/wpk_h[-1] =  ibodem;
+
+OLS <1974 2012> DK ibz-ibodem-dkuplus4 = (dku-dkuplus4),(dkuminus4-dkuplus4);
+//// SE HER: Koefficienter genberegnes formentlig kun ved reestimationer - og kun til 2012
+////eq dk 'Expected kr/DM change' ibz-ibodem-dkuplus4=(dku-dkuplus4),(dkuminus4-dkuplus4),const;
+////normalize dk=??+dkuplus4;
+//// #fut|<74 112>; !!
+
+OLS <1984 2012> STOCK afilbx/demand=-1/demand;
+
+
+// Bilkøb
+// ******
+// Ønsket
+OLS < 1971q1 %est_slut > COFCB log(fcb)=log(fcp),rente;
+SERIES cofcb=log(fcb)-#cofcb_param[1]*log(fcp)-#cofcb_param[2]*rente-#cofcb_param[3];
+
+// Faktisk
+OLS < 1971q2 %est_slut > FCB dlog(fcb)=dlog((ydp-ipv)/pcp),cofcb[-1];
+
+// Privatforbrug
+// *************
+// Ønsket
+// SE HER: Langsigtsrelationen baseres på færrere observationer end faktisk
+MATRIX #m = [1,1,0,1]; 
+OLS <1973q2 2010q4> COFCP log(fcp)=log(yd_h/pcp), log((wcp.1)/pcp) impose = #m;
+// Faktisk
+// SE HER: Variablen dlogpcpt skal fremover skrives som dlog(pcpt)
+OLS <1973q3 %est_slut> FCP  dlog(fcp)= dlog(yd_h/pcp), dlog(wh_h.1/pcp), (log(fcp.1) - ((#cofcp_param[1])*log(yd_h.1/pcp.1)+(#cofcp_param[2])*log((wcp.2)/pcp.1))),dlogpcpt, arblos2, dmims, d7734, d78q4;
+
+//'Change in consumption deflator (log)'
+OLS <1973q3 %est_slut> PCPT dlog(pcp) = tttt;
+
+
+
+
+// Bolig
+// *****
+// Kontantpris
+series <1973   1998q3> before98q4 = 1;
+series <1998q4 2012q4> before98q4 = 0;
+OLS <1973q2 %est_slut> KP   dlog((kp/pcp))= dlog(kp[-1]/pcp[-1]),before98q4*diff((1-tsuih)*ib30 + ssats),log(kp[-1]/pcp[-1]),
+                                        ((1-tsuih[-1])*ib30[-1] + ssats[-1] - dpcpe_ar[-1]), ((1-tsuih.1)*ibmin00.1 + ssats.1 + afdr.1),  
+                                        drkpe_ar[-1], log(yd_h[-1]/pcp[-1]/aih[-1]);
+
+// Boliggæld
+OLS < 1990 %est_slut > WQH_H_Z DLOG(WQH_H_Z)=LOG(WQH_H_Z[-1]/WH_H[-1]),DLOG(WH_H);
+
+// 'Residential investments'
+matrix #m = [1,0,0,0,0,0,.85];
+OLS < 1980q1 %est_slut > FIH fihn/aih[-1] = fihn[-1]/aih[-2],(.001)*log(kp[-1]/pih[-1]), (.001)*dlog(kp/pih), (.001)*d100q1,(.001)*d100q1[-1] impose = #m;
+
+//'Residential reinvestments'
+OLS <1972q1 %est_slut constant = no> FIHV fihv = .001*aih[-1];
+
+// Løn og arbejdsmarked
+// ********************
+MATRIX #m = [ 0,1,0,0,0,0,-0.2; 0,0,1,0,0,0,-0.2];
+OLS <1975q1 %est_slut> LNA dlog(lna)-0.02*KOMP[-1]= dpcpe_ar, diff(ulb/u), (ulb[-1]/u[-1]), dlog(maxtid2), kompe[-1] impose = #m;
+
+// Erhvervsfrekvens - tillempet 2sls, men ingen korrektion af restled i 2. trin
+OLS <1972q3 2010q4> BESKFRK dlogbeskfrk = dlog(erhfrk.1), dlogbeskfrk.1, (log(erhfrk.1)-lntren.1), (log(erhfrk.1)-log((qp.1+qo.1+qs.1+uel_x6566.1)/b1574.1)),
+                              dummy1973Q4,dummy1991Q1,dummy1992Q1;
+OLS <1972q3 2010q4> ERHFRK dlog(erhfrk) = dlog(erhfrk.1), BESKFRK_predict, (log(erhfrk.1)-lntren.1), 
+                                         (log(erhfrk.1)-log((qp.1+qo.1+qs.1+uel_x6566.1)/b1574.1)),
+                                         dummy1973Q4,dummy1991Q1,dummy1992Q1;
+
+//Faktorefterspørgsel
+//'Private non-farm employment, hours (adjusted)' 
+MATRIX #m = [1, 0, 0, 0, 0, 0.3];
+OLS < 1972q1 %est_slut > QBYX dlog(qbyx)=dlog(fyfbx),(log(fyfbx.1)-0.67*log(qbyx.1)-0.33*log(km.1)),(.001)*(trend-1970),(.001)*(1-dummy7199)*(trend-2000) impose = #m;
+
+VAL %prodtr = (#QBYX_param[3]/#QBYX_param[2])*1/.67;
+
+OLS <1972q2 %est_slut> FIPBXE dlog(kb) = dlog(kb[-1]),.001*log(fyfbx.1/kb.1),.001*(trend-1994)*(1-dummy7193);
+OLS <1972q3 %est_slut> FIPMXE dlogkm = dlog(km[-1]),dlog(km[-2]),(.001)*dlogfyfbx,(.001)*(log(km[-1])-log(fyfbx[-1])),(.001)*log(rlnim[-1]);
+
+// DISSE SERIER MÅ REDEFINERES - fordi serierne ændrer indhold i monagenr !
+OLS <1972q1 %est_slut> RLNIB log(rlnibx)= trend;
+matrix #m = [1,0,%prodtr];
+//matrix #m = [1,0,16.74476];
+OLS <1972q1 %est_slut> RLNIM log(rlnimx)=.001*trend impose = #m;
+
+
+
+
+//Udenrigshandel
+//**************
+
+
+OLS <1975q1 %est_slut> COFEIND log(feind/feu)=log(lonudl/(efkrks*lnio)),dum903,(.001)*trend;
+
+OLS <1975q3 %est_slut> FEIND dlog(feind)=  dlog(feind[-1]),dlog(feu),dlog(pxudl/pxden),
+                                             (log(feind[-1]/feu[-1]) - ((#COFEIND_PARAM[1])*log(lonudl[-1]/(efkrks.1*lnio[-1]))
+											                         +  (#COFEIND_PARAM[2]*dum903[-1]+ (#COFEIND_PARAM[3])*(.001)*trend))),log(tuc[-1]);
+
+
+// Import
+
+OLS < 1972q3 %est_slut > FMBRAK dlog((fmbrak/xfmbra)) = dlog(fmbrak.1/xfmbra.1), log(fmbrak.1/xfmbra.1),
+                                                        log(ter.1*(pmbra.1+tmbra.1)/mulc.1),(.001)*trend;
+
+// SE HER dlogxfmvxk skal erstattes med dlog(xfmvxk) fremover
+OLS <1974q1 %est_slut > FMVX dlog(fmvx)               = dlogxfmvxk, dlog(((pmvx+tmvx)/mulc)), log(fmvx.1/xfmvx.1), log((pmvx.1+tmvx.1)/mulc.1),
+                                                        (log(fyfbx.1)-(.33)*log(km.1)-(.67)*log(qbyx.1)),(.001)*trend;
+
+
+// Priser
+OLS < 1975q2 %est_slut > RESTX dlog((restx)) =  dlog((lnio.1)),dlog((pimpor)),dlog((pimpor.1)),dlog((pimpor.2)),(log(restx.1)-log(mulc.1)),(.001)*trend,d7734,d8081;
+
+MATRIX #m = [0, 0, 1, 1, 1, 0, 0];
+OLS < 1974q2 %est_slut > PEBRA dlog(pebra)=dlog((praoli*eusd)),dlog(pebra.1),log(pebra.1),log(praoli.1*eusd.1),log(lonudl.1/efkrks.1) impose = #m;
+
+MATRIX #m = [0, 1, 1, 1, 0, 0, 0];
+OLS < 1974q2 %est_slut > PENER dlog((pener)) = dlog((pmbra+tmbra)), log(pener.1), log(mulc.1),(log(pmbra.1+tmbra.1)),(.001)*trend impose = #m;
+
+MATRIX #m = [0, 0, 0, 1, 1, 1, 0, 0, 0];
+OLS < 1974q2 %est_slut > PES dlog((pes))=dlog((pship*eusd)),dlog((lonudl/efkrks)),  log(eusd/eusd[-4]),log(pes[-1]),log(pship[-1]*eusd[-1]),log(lonudl[-1]/efkrks[-1]),(.001)*trend impose = #m;
+
+MATRIX #m = [1,0,0,1];
+OLS <1975q1 %est_slut> PFODEV log(pfodev)   = log(mkv*(%im_pfodev)*pmvx + (1-mkv*%im_pfodev)*restx/%mrestx),(.001)*trend impose=#m;
+
+
+
+MATRIX #m = [0, 0, 1, 1, 1, 0, 0];
+OLS < 1974q2 %est_slut > PMBRA dlog(pmbra)=dlog(praoli*eusd),dlog(pmbra[-1]),log(pmbra[-1]),log(praoli[-1]*eusd[-1]),log(lonudl[-1]/efkrks[-1]) impose = #m;
+
+OLS < 1975q2 %est_slut > PMVX  dlog((pmvx)) = dlog((pmudl)),dlog((1/efkrks)),(log(pmvx.1)-log(pmudl.1/efkrks.1)),(log(pmvx.1)-log(mulc.1)),(.001)*trend;
+
+
+MATRIX #m = [ 1, 0, 0, 1];
+OLS <1975q1 %est_slut > POFFYD log(poffyd) = log(mkv*(%im_poffyd)*pmvx + (1-mkv*%im_poffyd)*(%ww_poffyd)*lo + (1-mkv*%im_poffyd)*(1-%ww_poffyd)*restx/%mrestx),(.001)*trend impose = #m;
+
+MATRIX #m = [0, 0, 0, 1, 1, 1, 0, 0,0];
+OLS < 1975q2 2007q4 > PXDEN dlog(pxden/efkrks)=  dlog(pxudl/efkrks),dlog(efkrks),dlog(mulc),log(pxden.1/efkrks.1),log(pxudl.1/efkrks.1),log(mulc.1),(.001)*trend impose = #m;
+
+MATRIX #m = [1,0,0,1];
+OLS <1975q1 %est_slut > QCB log(qcb) = log(mkv*(%im_qcb)*pmvx + (1-mkv*%im_qcb)*restx/%mrestx),(.001)*trend impose = #m;
+
+MATRIX #m = [1,0,0,1];
+OLS < 1975q1 %est_slut> QCOV log(qcov)  = log(mkv*(%im_qcov)*pmvx+(1-mkv*%im_qcov)*(0+%e_qcov/(%e_qcov+%ww_qcov))*(0.5*pmbra+0.5*pyfe)
+                                                                      +(1-mkv*%im_qcov)*(%ww_qcov/(%e_qcov+%ww_qcov))*restx/%mrestx),(.001)*trend impose = #m;
+
+OLS < 1974q2 %est_slut > QIB dlog(qib) = dlog(qib[-2]),dlog(lnio),dlog(pmvx+tmvx),d88q1,
+                                        (log(qib[-1])-log( (%im_qib)*mkv[-1]  *(pmvx[-1]+tmvx[-1])/1.008+(1-(%im_qib)*mkv[-1])*mulc[-1]/%mmulc)),(.001)*trend;
+
+OLS < 1974q2 %est_slut > QIM dlog(qim) = dlog(pm59),(log(qim[-1]) - log(  mkv.1*(%im_qim)*pm59[-1]+(1-mkv[-1]*%im_qim)*mulc[-1]/%mmulc)),(.001)*trend;
+
+//ØVRIGE
+OLS <1974q2 %est_slut constant = no> PCUN PCUN = .001*ytr;
