@@ -14,6 +14,9 @@ AREMOS alternative
   
 ## Status
   
+06/20/2020
+Load, combine and export scenarios, plot scenarios, new function for calculating multi-year average growth.
+
 06/16/2020
 County allocation cleaned up, added county comparison figures indexed to 100 in the last year of history.
 
