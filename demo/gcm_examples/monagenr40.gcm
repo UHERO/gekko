@@ -1,0 +1,1132 @@
+//SITC-grupper indarbejdet. Når nye data er tilbageført. skal nødløsinger for fmbra.pmbra.febra.pebra.feind.peind.xfmvx (splice med gamle serier) fjernes /TSH maj 2017
+//  
+// Der er indføjet en del "SE HER:" nedenfor i forbindelse med forhold der SKAL rettes op på
+close *; restart; cls;
+mode data;
+
+OPEN <edit> g:\Modelenheden\MONA\Gekko\data\banker\monabank40 as monabank; clear monabank;
+OPEN g:\Modelenheden\MONA\Gekko\model\byg_model\feb2018\banker\parametre.gbk as param;  //Bank med parameterestimater
+
+
+list #mona_var      = #(listfile monafeb1812.lst);  // variable, der skal til monabank
+
+
+//ET PAR INDSTILLINGER. DER ER NØDVENDIGE FOR AT KOMME I GANG
+STRING %STI          =  'g:\Modelenheden\MONA\Gekko\data\banker\' ;
+VAL     %forkort      = 1          ; 
+DATE    %refaar       = 2010       ;                                   // Referenceår for kædede værdier
+DATE    %qslut        = 2019q3     ;                                   // Hentet fra RUNSYS
+DATE    %forecast_st  = 2019q4     ;                                   // Kan godt være den samme som qslut - håndteres i nowcast
+DATE    %qslut_a      = date(substring('{%qslut}',1,4));
+DATE    %qslut_aar_q1 = date('{%qslut_a}q1');                          // Første kvartal i sidste historiske år
+VAL     %logist       = 0          ;                                   // Ny-estimation af logistisk trend undgaas med et 0 - hentet fra RUNSYS
+STRING %ttt = currentDateTime();
+TELL 'START {%ttt}';
+// Bank med parameterestimater
+//STRING %estbank      = 'g:\Modelenheden\MONA\Gekko\model\byg_model\feb2018\banker\est090216.gbk';
+STRING %seneste_bank = 'pr1909';
+
+OPTION freq q;
+TIME 1970  %qslut;
+OPEN      {%STI}\monabk       ;
+INDEX <mute showbank=no> monabk:*!q to #monabk_lst;
+//Variable, der både ligger i monabk og indgår i modellen
+LIST #kan_hentes  = #mona_var.intersect(#monabk_lst);
+COPY monabk:{#kan_hentes};
+// ANDRE VARIABLE, DER ER NØDVENDIGE - en del vil blive overflødige, når modellen udbygges med l,f,p - variable mv.
+COPY monabk:IBO,monabk:IXDE,MONABK:atpftj,MONABK:PDEB,MONABK:PCUI,MONABK:yfe,MONABK:ipmxe,MONABK:ipbxe,MONABK:ih,MONABK:ixlo,MONABK:sipp,MONABK:topk,
+     MONABK:cp,MONABK:io,MONABK:iom,MONABK:iob,MONABK:cb,MONABK:ch,MONABK:co,MONABK:mt,MONABK:et,MONABK:ibzz, MONABK:fm3, MONABK:pm3, MONABK:IMOL, MONABK:fe3, MONABK:pe3,
+	 MONABK:ey,MONABK:my,MONABK:filbx,MONABK:ilbx,MONABK:yfla, MONABK:sisu, MONABK:six, MONABK:ilvg,MONABK:exol,MONABK:eoverg,MONABK:feani,MONABK:peani,
+	 MONABK:feveg,MONABK:peveg,MONABK:fekqd,MONABK:pekqd,MONABK:fefsk,MONABK:pefsk,MONABK:fepel,MONABK:pepel,MONABK:fe0,MONABK:pe0,MONABK:fe1,MONABK:pe1,MONABK:fe2,MONABK:pe2,
+	 MONABK:fe4,MONABK:pe4, MONABK:fiy,MONABK:iy, MONABK:fit,MONABK:it, MONABK:fieb,MONABK:ieb, MONABK:fiem,MONABK:iem,MONABK:tyr_pw,MONABK:toa,MONABK:rest,MONABK:fmarked,
+	 MONABK:ufo!a,MONABK:ufp!a,MONABK:ptty1!a,MONABK:te!a,MONABK:nbs!a,MONABK:dumuel!a,MONABK:wflkgud!a,MONABK:wflkgdm!a,MONABK:edem,MONABK:standardber_as,
+	 MONABK:pfi,MONABK:pilbx_la,MONABK:psi_la,MONABK:ttypfp!a,MONABK:B32!a,MONABK:B37!a,MONABK:B42!a,MONABK:B47!a,MONABK:B52!a,MONABK:B57!a,MONABK:B62!a,MONABK:OHYP!a,
+	 MONABK:pxumd,MONABK:pmarked,MONABK:pship!m,MONABK:praoli!m,MONABK:dnkpxm,MONABK:ws_z_h,MONABK:gqqg,MONABK:pmfrb,MONABK:pmind;
+FOR  STRING   %var1 = tsds, tsuih, phv, phk, tsdl
+     STRING   %var2 = tax , tsuih, phv, phk, tsdl;
+     INTERPOLATE monabank:{%var2}!q = monabk:{%var1}!a repeat;  
+     DATE    %dd    =  fromSeries( {%var2} , 'DataEnd' ) ;
+     SERIES <%dd+1 %qslut> {%var2} = {%var2}[%dd];
+END;
+
+//Underlig måde at gøre tingene på:
+//tsuih aftrappes med 1 pct. fra 2012 til 2018 afspejler formentlig forårspakke 2.0 - Forkert praksis af mange grunde: loft for rentefradrag,
+//bør IKKE lægges ind i historisk observeret variabel
+// AREMOS-systemet henter udvikling i tsuih fra MONADATA, hvilket bidrager til at gøre datagenerering til en lang rekursiv process /MWE
+//series <2012 2012> tsuih = tsuih - .01;
+//series <2013 2013> tsuih = tsuih - .02;
+//series <2014 2014> tsuih = tsuih - .03;
+//series <2015 2015> tsuih = tsuih - .04;
+//series <2016 2016> tsuih = tsuih - .05;
+//series <2017 2017> tsuih = tsuih - .06;
+//series <2018 2018> tsuih = tsuih - .07;
+series <2019 2019q3> tsuih = tsuih[2010q4];
+
+//ÅRSSERIER - INTERPOLERES
+FOR string %i = btgih,btgiom,btgiob,btgipm,btgipb,btgb,btgh,sipx,sipxo ;
+	INTERPOLATE monabank:{%i}!q = monabk:{%i}!a repeat;
+	date %dd = %i.fromseries('dataEnd');
+	SERIES < %dd+1 %qslut > {%i} = {%i}[%dd];
+END;
+
+interpolate monabank:sigxo!q = monabk:sigxo!a repeat;
+close monabk;
+
+SERIES sigxo = sigxo/1000;
+
+// NØDVENDIGE ADAM-serier
+OPEN {%sti}\adambkx;
+ interpolate fknbh!q = adambkx:fknbh!a repeat;
+CLOSE  adambkx;
+// SE HER: UKLART HVAD DSBANK EGENTLIG ER - ER DET EN HISTBANK??
+OPEN {%STI}\dsbank;
+ TIME 1970 %qslut;
+ INTERPOLATE kba!q	    = dsbank:kb!a 	repeat ; 
+ INTERPOLATE kma!q		= dsbank:km!a	repeat ;
+ INTERPOLATE pkb_a!q	= dsbank:pkb!a	repeat ;
+ INTERPOLATE pkm_a!q	= dsbank:pkm!a	repeat ;
+CLOSE dsbank;
+// SE HER: TILBAGEFØRING PBA GAMMEL BANK - bør undgås
+OPEN {%STI}\pr1812;
+ SPLICE fipbxe  = pr1812:fipbxe 1972q1 monabank:fipbxe ;
+ SPLICE fipmxe  = pr1812:fipmxe 1972q1 monabank:fipmxe ;
+CLOSE pr1812;
+// SE HER: SERIE DER ANVENDES VED BEREGNING AF BKAPITALOMKOSTNINGER - VIRKER RET UNDERLIGT
+OPEN {%STI}\monabank1303;
+COPY monabank1303:pyfbx_25600;
+CLOSE monabank1303;
+OPEN {%sti}\boligf.gbk; 
+ SERIES <1980q4 2006q4> wh_h=boligf:whbtga[+1]/1000; // Boligf er boligformuen ultimo kvartalet, whbtga er primo
+CLOSE boligf;
+OPEN {%sti}\monabk_dansk; //TSH juni 2012
+ option freq m;
+ splice praoli!m = monabk_dansk:praoli!m 1993m1 praoli!m;
+close monabk_dansk;
+option freq q;
+COLLAPSE praoli!q = praoli!m avg;
+
+COLLAPSE ship!q = pship!m avg;
+SERIES pship = (ship*edem/eusd)/100000; DELETE ship;
+//SE HER: pship har databrud i 1993 - korrigerede hentes i price
+OPEN {%sti}\pr1812;
+SERIES <1970q1 1992q4> pship = pr1812:pship;
+CLOSE pr1812;
+
+option freq q;
+//TREND
+TIME 1970 %qslut;
+SERIES <1970q1 1970q1>  trend   = 1970;
+SERIES <1970q2 %qslut>  trend  ^= .25 ;
+SERIES <1971 1992       >  tttt   = .001*trend;SERIES <1993q1 %qslut>  tttt   = .001*trend[1992q4];
+
+SERIES tt = trend-1980;
+// b1-b4 er i aremosprogrammet formuleret som matricer her som assignede størrelser - gør ingen forskel ved logist = 0 - uklart, hvad der sker ved estimation af trendem
+VAL %b1 = 0.127330; VAL %b2 = -0.174504; VAL %b3 = -4.919466; VAL %b4 = 0.634478;
+//IF ( %logist == 1 );
+//  OLS erhfrk = %b1/(1+exp(%b2*(tt-%b3))) + %b4;
+//END;
+SERIES lntren_ =  %b1/(1+exp(%b2*(tt-%b3))) + %b4;
+
+SERIES lntren  = log(lntren_);
+SERIES <2001 %qslut> lntren ^= diff(log(standardber_as/b1574)); // Danner den nye trend, der skal følges efter 2001. Her skal der tages højde for den aldrende befolkning. ! NY
+
+//SÆSONDUMMY'ER
+FOR DATE %d = 1970 to VAL(%qslut_a);  // KAN ÆNDRES MED <dyn> option i kommende GEKKO
+ option freq a;
+ time %d %d;
+ option freq q;
+ series sea1 = (1, 0, 0, 0);
+ series sea2 = (0, 1, 0, 0);
+ series sea3 = (0, 0, 1, 0);
+end;
+
+time 1970 %qslut;
+
+//DIVERSE DUMMY'ER
+SERIES <1971q1 1975q3> DMIMS  = 0; SERIES <1975q4 1975q4> DMIMS  =  1; SERIES <1976q1 1976q1> DMIMS  = -1; SERIES <1976q2 %qslut> DMIMS = 0;
+SERIES <1971q1 1977q2> d7734  = 0; SERIES <1977q3 1977q3> d7734  =  1; SERIES <1977q4 1977q4> d7734  = -1; SERIES <1977q4 %qslut> d7734 = 0;
+SERIES <1970q1 1978q3> d78q4  = 0; SERIES <1978q4 1978q4> d78q4  =  1; SERIES <1979q1 %qslut> d78q4  =  0;
+SERIES <1971q1 %qslut> D100Q1 = 0; SERIES <2000q1 2000q1> D100Q1 =  1;
+SERIES <1971q1 %qslut> D8081  = 0; SERIES <1980q2 1980q3> D8081  = -1; SERIES <1981q1 1981q1> D8081  = -1;
+SERIES <1971q1 1993q4> dummy7193 = 1   ; SERIES <1994q1 %qslut> dummy7193   = 0 ;
+option freq a;
+SERIES <1971 1999> dst00a  = 0; SERIES <2000 %qslut_a> dst00a ^= 1;
+SERIES <1971 1984> dst85a  = 0; SERIES <1985 %qslut_a> dst85a ^= 1;
+option freq q;
+INTERPOLATE dst00a!q = dst00a!a repeat;
+INTERPOLATE dst85a!q = dst85a!a repeat;
+SERIES <1971q1 %qslut>   dum761 = 0; SERIES <1976q1 1976q1   >   dum761 = 1;
+SERIES <1971q1 1990q2>  dum903 = 0; SERIES <1990q3 %qslut>  dum903 = 1;
+SERIES <1971q1 1993q3>  dumul  = 0; SERIES <1993q4 %qslut>  dumul = 1; 
+SERIES dpybw = 1;
+SERIES <1971q1 1999q4> dummy7199   = 1 ; SERIES < 2000q1 %qslut >  dummy7199   = 0 ;
+SERIES <1970q1 1973q3> dummy1973Q4 = 0 ; SERIES < 1973q4 1973q4 >  dummy1973Q4 = 1 ; SERIES < 1974q1 %qslut > dummy1973Q4 = 0 ;
+SERIES <1970q1 1990q4> dummy1991q1 = 0 ; SERIES < 1991q4 1991q1 >  dummy1991q1 = 1 ; SERIES < 1991q2 %qslut > dummy1991q1 = 0;
+SERIES <1970q1 1990q4> dummy1992q1 = 0 ; SERIES < 1991q4 1991q1 >  dummy1992q1 = 1 ; SERIES < 1991q2 %qslut > dummy1992q1 = 0;
+SERIES IBZDUM = 0;
+SERIES <1971q1 %qslut>   d88q1  = 0    ; SERIES <1988q1 1988q1 >   d88q1  = 1 ;
+
+SERIES <1971 1972>      deusim = 0        ;SERIES <1973 1973>      deusim = 0.854071 ;SERIES <1974 %qslut> deusim = 1        ;
+
+INTERPOLATE dumuel!q = dumuel!a repeat;DATE  %dd     =  dumuel.fromSeries( 'DataEnd' ) ;series <%dd+1 %qslut> dumuel ^= 0;
+
+// DIVERSE DEFINITIONER
+SERIES ibz     =  IBO    ;
+SERIES rente   =  ibz*(1-tsuih);
+SERIES ibzx    =  ibz[+1];
+SERIES IDP     =  IXDE   ;
+SERIES pyfe    =  yfe/fyfe;
+SERIES pcp     =  cp/fcp;
+SERIES pih     =  ih/fih;
+SERIES pcp     =  cp/fcp;
+SERIES pio     =  io/fio;
+SERIES piom    =  iom/fiom;
+SERIES piob    =  iob/fiob;
+SERIES piem    =  iem/fiem;
+SERIES pieb    =  ieb/fieb;
+SERIES piy     =  iy/fiy;
+SERIES pit     =  it/fit;
+SERIES pch     =  ch/fch;
+SERIES pcb     =  cb/fcb;
+SERIES pyfbx   =  yfbx/fyfbx;
+SERIES kfxe    =  fxe/fyfe;
+SERIES dfsi_la = psi_la;
+SERIES fcov    =  (fco*pco_la-fyfo*pyfo_la)/pcov_la;
+SERIES pcov    =  (co-yfo)/fcov;
+SERIES cov     =  co-yfo;
+SERIES ywo     =  yw-ywby-ywla;
+SERIES cow     =  yfo-iov;
+SERIES pcow    =  cow/fcow;
+SERIES cov     =  fcov*pcov;
+SERIES piov    =  iov/fiov;
+SERIES pipbxe  =  ipbxe/fipbxe;
+SERIES pipmxe  =  ipmxe/fipmxe;
+SERIES fipm    =  (fipmxe*pipmxe_la+fiy*piy_la+fiem*piem_la)/pipm_la;
+SERIES pipm    =  (IPMXE+iy+iem)/FIPM;
+SERIES ipm     =  fipm*pipm;
+SERIES ihv     =  (ih/fih)*fihv;
+SERIES ilo     =  ixlo    ;
+SERIES ipb     =  ipbxe+ieb;
+SERIES pipb    =  ipb/fipb;
+SERIES pmt     =  mt/fmt ;
+SERIES pet     =  et/fet;
+SERIES fihn    =  fih-fihv;
+SERIES DAGP    = TYD/UL ;
+SERIES bqulb   = qulb/uab;
+SERIES buab    = uab/ulb;
+SERIES pcq     = (pcp*fcp-pcb*fcb-pch*fch-pmt*fmt+pet*fet)/fcq;
+SERIES BWWB=bqqn+bbzz+bvrf;
+SERIES sisub   = -sisu;
+SERIES siqs    = siqr+siqam+siquab+siqej+siqv-six; 
+SERIES tyr     = tyr_pw; 
+SERIES typ     = tyr+tysas+typsfp+typsfo; 
+SERIES jten    = ten-tenoi+tenou+sie-tken;
+SERIES qbyX    = .001*(qby-qby_orl)*maxtid**.7; //ser qbyX=.001*qby*maxtid**.7;
+
+OPEN {%STI}\pr1409;
+ splice qbyx = pr1409:qbyx 1991q1 qbyx; // SE HER: Nødløsning manglende tilbageføring af udenrigshand. Fjernes igen når SITC-data er tilbageført. /TSH maj 2017
+close pr1409;
+
+SERIES pco     = co/fco;
+SERIES toi     = toa-iov-tenoi;
+SERIES restx   = rest / rest.avgt(1980q1,1980q4) ;
+SERIES fsi     = fy-fyf;
+SERIES pxden=0.01*dnkpxm*efkrks/efkrks.avgt(2010q1,2010q4);
+series <2011q1 %qslut> alba = 0;  //SE HER: burde egentlig kunne trækkes af monabk i hele perioden
+SERIES PMUDL = 0.01*pxumd*efkrks/efkrks.avgt( 2010q1, 2010q4);
+SERIES pxudl = 0.01*pmarked*efkrks/efkrks.avgt( 2010q1, 2010q4);
+
+//HUSH. disponibel indkomst korrigeret for engangsudbetaling af kap.pension
+SERIES korr1 = 0;
+SERIES <2013q1 2015q4> korr1 = (2.93, 5.93, 8.43, 11.93, 6.63, 11.03, 17.93, 23, 2, 3, 7, 13.5);  //2013: Sum  29,2 -> Afstemt med SKM tal
+                                                                                                          //2014: Sum: 58.6 -> Årstal afstemt med SKM tal, hvilket kan give mindre afvigelser fra dst kvartalsprofil for 2014K1-2014K3
+                                                                                                          //2015: AUM 9/11/2017: årssum 25,5 mia. kr., fra ØR aug. 2017 s. 142.  AUM 21/5/2017: årssum 24.5 mia. kr., opdateret med KP 2017 s. 51 (tidl. ØRdec16 s. 141) samt DST NYT 27. marts 2017 (off.ligt kvartalsregnskab 4. kvartal 2016) ved aflæsning af figur og mail fra DST. Bemærk at vi følger FM's årstal, som afviger fra DST i alle årene grundet forskelle i definitionen af 'ekstraordinær indtægt'. Tidligere !1, 2, 5.5, 16.0 repeat 1;  !2015:  RMJ 15/8 Skal ramme årssum på Sum: 24,5 mia. kr., jf. ØR, maj16, s. 159 -> fordeler nedjustering på kvartalerne, som dermed afviger fra Dst nyt. Tidligere   !28,25 (matcher ØR, dec15, s 146) -> 2015K1 tal er taget fra Dst Nyt vedr. offentlige finanser d. 25 juni 2015 + 2015k2 fra Dst nyt om off. finanser 25. sep 2015 + 2015K3 aflæst grafisk fra Dst nyt vedr. offentlige finanser, 17.dec 2015. 2, 3, 6.5, 16.75 repeat 1;
+// Kvartalsprovenuer annualiseres, og en 1/3 tages ud sfa. udbetalinger fra koll. ordninger
+SERIES korr1 = 4*(2/3)*korr1; 
+SERIES <2013q1 %qslut> yd_h2 = yd_h + korr1;
+SERIES <1990q1 2012q4> yd_h2 = yd_h;
+
+
+// SE HER: Vi bør hente de faktiske dst-serier - og anvende relationerne til residualtjek - ikke til at danne aggregater
+SERIES qp=qby+qla;
+SERIES Q = QP+QO+QS;
+SERIES yf=y-(siaf-siqej-siqv-siqam-siquab-siqr)+sisub-siqs-sie;
+SERIES pyf=yf/fyf; 
+SERIES DAGL    = (yw-sbid-sdu)/(qo+qp) ;
+SERIES arblos2 = 0.5*( (DAGL-DAGP)*(1-BSDA)*(UL/(qo+qp+ul))/dagl -(DAGL[-2]-DAGP[-2])*(1-BSDA[-2])*(UL[-2]/(qo[-2]+qp[-2]+ul[-2]))/dagl[-2] ) ;
+
+
+// SE HER: Bør ikke definere nyt indhold ned i eksisterende navn
+SERIES ncp    = ncp  / ncp.avgt(1980q1,1980q4)  ;         
+SERIES pener  = pener/pener.avgt(1980q1,1980q4) ; 
+SERIES poffyd = poffyd/poffyd.avgt(1980q1,1980q4) ; 
+SERIES phusl  = phusl/phusl.avgt(1980q1,1980q4) ; 
+SERIES pfodev = pfodev/pfodev.avgt(1980q1,1980q4) ; 
+
+ser pimpor_h=(.58*pmfrb+.42*pmind);
+DATE %dd = pimpor.fromseries('DataEnd')    ;
+splice pimpor=pimpor_h 1981q2 pimpor ;
+SERIES pimpor = pimpor/pimpor.avgt(1980q1,1980q4) ; 
+
+SERIES beskfrk     = (qp+qo+qs+uel_x6566)/b1574 ;
+
+SERIES qftj= 1320*atpftj/atpftj[80q4];
+
+// NAD, okt 2014: QFTJ forlænges med beskæftigede i finansiering og forsikring ifølge KNR
+OPEN {%sti}\qdamx;
+SERIES <2009 %qslut dyn> qftj = qftj[-1] * (1 + pch(qdamx:gqwek)/100);
+close qdamx;
+
+SERIES <1973q1 1991q4>  pdb = PCUN+PDEB-PDSB+PCUI;
+SERIES <1992q1 %qslut> pdb = PCUN+PDEB-PDSB;
+
+SERIES omkostled=qftj*lo/(pdb-pcun+pdsb+ldeb+blop+blol) ;
+
+// PENSIONER
+// *********
+SERIES tfnf_h = tfnx_h + diff(wq_h_z)*4;  // Nye variable vedr. ny forbrugsrelation og finansiel delmodel / TSH jan. 2014
+SERIES owpk = diff(wpk_h)*4 - dalo; 
+SERIES owpp = diff(wpp_h*4) - 0.3*tfnf_h; 
+SERIES tppk = topk; // omdøbning - Nares bør tilrettes / TSH 
+SERIES btppk = tppk/yw; 
+SERIES btypk = typk/wpk_h[-1];
+SERIES btiu_h = tiu_h/ws_z_h[-1];
+
+
+
+//SKATTER
+
+// SE HER: DISSE GIVES POSITIV VÆRDI, FORDI DE INDGÅR I LOG I MODELLEN - DETTE SKAL ÆNDRES OG PROVENUERNE DEREFTER FORBLIVE PÅ NUL!!!!
+SERIES < 1971 1987 > siqam  = .25 ;
+SERIES < 1971 1983 > siquab = .25 ;
+SERIES < 1988 1990 > siquab = .25 ;
+// SE HER: GENERELT - HVORFOR DEFINERES ALLE AGGREGATER IKKE ET STED (FX YTR OG FYTR DEFINERES I DSNYNAR, MEN DEFLATOREN HER ???
+SERIES siqur  = siaf-siqej-sipp-sig-siqv-siqr-siqam-siquab;
+SERIES tipk_h = dalo+ksdr*sdr-(topk-typk); 
+
+SERIES <1971 1993>   tdu=sdu/(qp+qo);
+SERIES <1994 %qslut> tdu=0;
+SERIES tqur=siqur/(qp+qo);
+
+
+SERIES btgcov=-sigxo/(tg*(sigxo-pcov*fcov));
+date  %dd   = btgcov.fromseries('DataEnd');
+string  %dd1 = substring(string(btgcov.fromseries('DataEnd')),1,4)   ;
+
+series <%qslut_aar_q1 %qslut> btgcov = btgcov.avgt(date('{%dd1}q1'),date('{%dd1}q4'));
+
+
+
+//COLLAPSE btgcov!a = btgcov!q avg;
+//SERIES   ser <freq=a>btgcov=forecast(btgcov,btgcov.1);
+// error abort;end;
+//interp btgcovgen=btgcov.a repeat;
+//ser <modify=extend>btgcov=btgcovgen+0*sig;
+
+
+
+SERIES tripm=.015;
+SERIES sighj=0.195*sig-btgcov*tg*pcov*fcov/(1+btgcov*tg);
+SERIES btgybx = sighj.avgt( 2010q1 , 2010q4 )/ ( yfbx.avgt( 2010q1 , 2010q4)*tg.avgt( 2010q1 , 2010q4 ));
+SERIES btgyh  = .015*sig.avgt( 2010q1 , 2010q4 )/( yfh.avgt( 2010q1 , 2010q4 ) * tg.avgt( 2010q1 , 2010q4));
+SERIES sirb=sir-tripm*pipm*fipm/(1+tripm);
+OPTION freq a;
+ COLLAPSE pcb!a    = pcb!q  avg ;
+ COLLAPSE fcb!a    = fcb!q  avg ;
+ COLLAPSE sirb!a   = sirb!q avg ;
+ COLLAPSE btgipb!a = btgipb!q avg;
+ DATE %dd = btgipb.fromseries('DataEnd')    ;
+ SERIES < 1971 %dd > trb=1/(pcb*fcb/sirb-1) ;
+OPTION freq q;
+INTERPOLATE trb!q = trb!a repeat ;
+SERIES sigq = sig-btgb*tg*pcb*fcb/((1+btgb*tg)*(1+trb))
+               -btgh*tg*fch*pch/(1+btgh*tg)-btgybx*tg*yfbx
+               -btgcov*tg*pcov*fcov/(1+btgcov*tg)
+               -btgiom*tg*piom*fiom/(1+btgiom*tg)
+               -btgiob*tg*piob*fiob/(1+btgiob*tg)
+               -btgipb*tg*pipb*fipb/(1+btgipb*tg)
+               -btgipm*tg*pipm*fipm/((1+btgipm*tg)*(1+tripm))
+               -btgih*tg*pih*fih/(1+btgih*tg)-btgyh*tg*yfh;
+SERIES sisubex=-sie+deusim*sim;
+
+SERIES pkafg=sipp-sir;
+option freq a;
+ COLLAPSE fcq!a  = fcq!q avg;
+ COLLAPSE pcq!a  = pcq!q avg;
+ COLLAPSE sigq!a = sigq!q avg;
+ COLLAPSE tg!a   = tg!q avg;
+ SERIES btgq=1/((fcq*pcq/sigq-1)*tg);
+OPTION freq q;
+interpolate btgq!q=btgq!a repeat;
+ 
+OPTION freq a;
+COLLAPSE fcov!a  = cov!q    avg; //Burde det være fcov.q i stedet?, pso dec 10
+COLLAPSE fyfbx!a = fyfbx!q  avg;
+COLLAPSE sipx!a  = sipx!q   avg;
+COLLAPSE sipxo!a = sipxo!q  avg;
+SERIES tpkybx=.001*(sipx-sipxo)/fyfbx;
+SERIES tpkcov=.001*sipxo/fcov;
+OPTION freq q;
+INTERPOLATE tpkybx!q = tpkybx!a repeat; 
+INTERPOLATE tpkcov!q = tpkcov!a repeat; 
+FOR string %i  = btgq, trb, tpkybx, tpkcov;
+  date %dd = %i.fromseries('DataEnd');
+  SERIES < %dd+1 %qslut > {%i} = {%i}[%dd];
+END;
+
+
+
+SERIES tpkq=(pkafg-tpkybx*fyfbx-tpkcov*fcov)/fcq;
+
+
+SERIES sircp  = trb*(1+btgb*tg)*pcb*fcb/((1+btgb*tg)*(1+trb));
+SERIES sigcp  = btgb*tg*pcb*fcb/((1+btgb*tg)*(1+trb)) + btgh*tg*fch*pch/(1+btgh*tg)+ btgq*tg*fcq*pcq/(1+btgq*tg) ;
+SERIES sigcb  = btgb*tg*pcb*fcb/((1+btgb*tg)*(1+trb)) ;
+SERIES sigch  = btgh*tg*fch*pch/(1+btgh*tg) ;
+SERIES sigcq  = btgq*tg*fcq*pcq/(1+btgq*tg) ;
+
+
+
+SERIES sipcp  = tpkq*fcq;
+SERIES tcpsip = sipcp/(fcp*pcp-sircp-sigcp-sipcp);
+SERIES tcpsip_2000=tcpsip.avgt(2010q1,2010q4)*ncp;
+SERIES tpkcp  = tpkq/tpkq.avgt(2010q1,2010q4)*tcpsip_2000.avgt(2010q1,2010q4);
+SERIES btgcp_=1/(tg*((cp-sircp)/sigcp-1));
+SERIES trcp_=(sircp/sigcp)*btgcp_*(tg/(1+btgcp_*tg));
+SERIES trcp = trb/trb.avgt(2010q1,2010q4)*trcp_.avgt(2010q1,2010q4);
+SERIES btgcp=  ( btgb/btgb.avgt(2010q1,2010q4) * sigcb.avgt(2010q1,2010q4) / sigcp.avgt(2010q1,2010q4)
+                +btgh/btgh.avgt(2010q1,2010q4) * sigch.avgt(2010q1,2010q4) / sigcp.avgt(2010q1,2010q4) 
+                +btgq/btgq.avgt(2010q1,2010q4) * sigcq.avgt(2010q1,2010q4) / sigcp.avgt(2010q1,2010q4) )* btgcp_.avgt(2010q1,2010q4);
+
+
+// BEREGNING AF AFGANGSRATER
+SERIES pkb_la =  pkb_a[-4] ;
+SERIES pkm_la = pkm_a[-4]  ;
+SERIES relpkib	= pipbxe_la	 / pkb_la;
+SERIES relpkim	= pipmxe_la / pkm_la;
+DATE %kap_slut = fromSeries( 'kba' , 'perend' ); 
+//IF realkap == 1 - er dette nødvendigt. Kan afgangsrater ikke blot blive beregnet hver gang?
+//Beregning af afgangsrater på  baggrund af dynamisk identitet. Indebærer løsning af 4. grads polynomium - derfor nedenstående 
+//fx: Kba = 1/4*(relpkib*fipbxe + relkip[-1]*(1-db)*fipbxe[-1] + relkip[-2]*(1-db)^2*fipbxe[-2] + relkip[-3]*(1-db)^3*fipbxe[-3] ) + (1-db)^4*kba[-4];
+MODE   mixed	        ;
+CREATE qm,qb         ;
+option model cache = no;
+MODEL  afgangsrater;
+OPTION solve method = newton;
+option solve newton conv abs = 0.0000001;
+
+SIM    <1972 %kap_slut> ;
+MODE   data                  ;
+COLLAPSE        qb!a = qb!q LAST	 ;
+INTERPOLATE 	qb!q = qb!a	repeat   ;
+COLLAPSE    	qm!a = qm!q LAST    ;
+INTERPOLATE 	qm!q = qm!a repeat  ;
+SERIES db = (1-qb);
+SERIES dm = (1-qm);
+DATE %dd = fromseries( 'db' , 'dataEnd' );
+IF ( %dd < %qslut );
+  SERIES <%dd+1 %qslut> db = db[%dd]; 
+  SERIES <%dd+1 %qslut> dm = dm[%dd]; 
+END;
+ser < 1971q4 1971q4 >  kb = kba                                  ;
+ser < 1971q4 1971q4 >  km = kma                                  ;
+for date %d = 1972q1 to %qslut;  // KAN ÆNDRES MED <dyn> option i kommende GEKKO
+	time %d %d;
+	ser < 1972   %qslut >  kb = kb[-1] * (1-db) + relpkib * fipbxe/4 ;
+	ser < 1972   %qslut >  km = km[-1] * (1-dm) + relpkim * fipmxe/4 ;
+end;
+
+time 1970 %qslut;
+// KAPITALOMKOSTNINGER
+// SE HER: OLD-gammelserie Hvad foregår her indebærer, at forventningene afhænger af gl. pyfbx-serie?????????????????????????????
+DATE %dd =  pyfbx_25600.fromSeries( 'dataEnd') ; 
+SERIES < %dd+1 %qslut > pyfbx_25600 %= (pyfbx_25600[%dd]/pyfbx_25600[%dd-1]-1)*100;
+VAL %basis2010 = (pyfbx_25600[2010q1]+pyfbx_25600[2010q2]+pyfbx_25600[2010q3]+pyfbx_25600[2010q4])/4;
+SERIES <1968 %qslut> pyfbx_25600 = pyfbx_25600/%basis2010;
+
+SERIES <1970 %qslut> dpyfbxe = .5*(log(pyfbx_25600)-log(pyfbx_25600[-4]));
+SERIES CUM    = ((1-TAX*ZMMASK)/(1-TAX))* pipm*((1-TAX)*Ibz - dpyfbxe +.1600);
+SERIES CUB    = ((1-TAX*ZBBYG )/(1-TAX))* pipb*((1-TAX)*ibz - dpyfbxe +.0200);
+SERIES lnio   = ywby/(qby*maxtid);
+VAL   %lnio00 = (lnio[2010q1]+lnio[2010q2]+lnio[2010q3]+lnio[2010q4])/4;
+SERIES lnio   = lnio/%lnio00;
+SERIES RLNIM  = CUM/LNIO;
+SERIES RLNIB  = CUB/LNIO;
+
+
+SERIES <1970q4 1970q4> afih = 0;
+//SE HER: fra gekkoversion senere end 2.21.7 er mellemberegning af d_afih ikke nødvendig
+//SERIES <1971q1 %focaslut> d_afih = .25*fihn;
+SERIES <1971q1 %qslut> afih ^= .25*fihn;
+SERIES aih       = afih + fknbh[2000q4]/1000 - afih[2000q4] ;
+
+// SE HER: Hjælperegressioner til konstruktion af rlnim og rlnim. Dog kun ved reestimation - parameterestimater hentes i monadata.bnk (21-12-2018 - gemt i undermappen banker (disp eqrm.coeff og disp eqrb.coeff)
+// Nedenstående giver ikke samme relative faktorpriser som i AREMOS-bank. Men de er lig dem, der findes i pr1812!!!!! MEGET MYSTISK
+MATRIX #m = [ 1, 0, %prodtr ];
+option freq q;
+//OLS <1972q2 2012q4> log(RLNIM) = 0.001*trend impose = #m;
+//SERIES RLNIM   = RLNIM/exp(param:#RLNIM_param[1] *.001*trend+param:#RLNIM_param[2] ) ;
+SERIES RLNIM   = RLNIM/exp( -16.744660*.001*trend+32.545480 ) ; //Egne estimater er identiske til 5. decimal - her blot for at få fuld overenstemmelse
+
+OLS <1972q2 2012q4> log(RLNIB) = trend;
+//SERIES RLNIB   = RLNIB/exp(param:#RLNIB_param[1]*trend+param:#RLNIB_param[2] ) ;
+SERIES RLNIB   = RLNIB/exp(-0.048875*trend+95.025213 ) ;//Egne estimater er identiske til 5. decimal - her blot for at få fuld overenstemmelse
+
+
+
+SERIES mulc     = lnio/( ((km/qbyx)**(1/(param:%subelas)))**.33 );
+SERIES logtuc=log(fyfbx)-log(km)-(param:%subelas)*.67*log(rlnim);
+SERIES tuc=exp(logtuc);
+MATRIX #m = pack(1971q2, 2010q4, tuc);VAL %maxtuc = maxc(#m);
+SERIES tuc=tuc/%maxtuc;
+
+
+
+SERIES aipb      = km*pipm + kb*pipb;
+SERIES aihb      = aih*kp;
+SERIES kp101=kp.avgt(2001q1,2001q4);
+
+SERIES <1971q1 1972q4>  lejev = tsdl*aih*kp*.75   ;
+SERIES <1973q1 1999q4>  lejev = tsdl*aih*kp.8*1.00;
+SERIES <2000q1 2002q4>  lejev = (.01/tsuih)*kp.8*aih*1.00;
+SERIES <2003q1 %qslut> lejev = (.01/tsuih)*kp101*aih*1.00;
+SERIES <1971q1 1981q4> skatdum  =1    ;
+SERIES <1982q1 1982q4> skatdum  = .75 ;
+SERIES <1983q1 1983q4> skatdum  = .50 ;
+SERIES <1984q1 1984q4> skatdum  = .25 ;
+SERIES <1985q1 %qslut> skatdum  = 0 ;
+SERIES skat    = .46*siqej*(1-tsuih*skatdum)+tsuih*lejev;
+SERIES ssats   = skat/(kp*aih)        ;
+
+SERIES <2006q4 %qslut> wh_h=wh_h[2006q4]*((kp*aih)/(kp[2006q4]*aih[2006q4])); // Boligf fremskrives med Monadata, så nybyggeri kommer med
+ SERIES wh_h_hist = kp*aih; 
+SPLICE wh_h = wh_h_hist 1980q4 wh_h;
+
+SERIES wcp = 0.9*wsq_z_h+0.8*wh_h+0.2*0.6*wp_h+wq_z_h-wq_h_z;
+SERIES wW  = pdb+pbzz-blop-zbzr-flp+aihb+aipb;
+SERIES WWX = pdb+pbzz-blop-zbzr-flp;
+
+SERIES ubzz=pbzz-zbzr+bbzz+fbzz;
+
+
+//priser
+SERIES qih   = pih/(1+btgih*tg);
+SERIES qcb   = pcb/((1+btgb*tg)*(1+trb));
+SERIES qcq   = pcq/(1+btgq*tg)-tpkq;
+SERIES qcov  = pcov/(1+btgcov*tg)-tpkcov;
+SERIES qipm  = pipm/((1+btgipm*tg)*(1+tripm));
+SERIES qipb  = pipb/(1+btgipb*tg);
+SERIES qiom  = piom/(1+btgiom*tg);
+SERIES qiob  = piob/(1+btgiob*tg);
+SERIES qib   = (fipb*qipb+fih*qih+fiob*qiob)/(fipb+fih+fiob);
+SERIES qib   = qib/qib.avgt(2010q1,2010q4);
+SERIES qim   = (fipm*qipm+fiom*qiom)/(fipm+fiom);
+SERIES qim   = qim/qim.avgt(2010q1,2010q4);
+
+SPLICE pcpdkeu = pfi 1995q1 pcpdkeu; //Ændret fra 94q1 til 95q1, pso 17/6-10
+SERIES pcpdkeu = pcpdkeu/ pcpdkeu.avgt( 2010q1 , 2010q4 ) ;
+SERIES pcpdk   = pfi/ pfi.avgt( 2010q1 , 2010q4 )         ;
+
+
+SERIES probx = 10000*fyfbx/(maxtid*qby);
+SERIES ulc   = ywby / fyfbx ;
+
+OLS  <1973q3 2012> dlogpcpt dlog(pcp) = tttt;
+SERIES dlogpcpt = dlog(pcp)-#dlogpcpt_param[1]*tttt-#dlogpcpt_param[2];
+
+SERIES komp=(tyd/(ul*.85))/((1-arbsats)*(yw)/(qp+qo));
+SERIES kompe = komp;       
+
+
+//Finansielle
+SERIES IBzz  = IBZZ/1000 ;
+SERIES varg  = -3   ;
+SERIES varr  = -6   ;
+SERIES afsg  = .05  ;
+SERIES afsr  = .015 ;
+SERIES kursg = 1  ;
+SERIES kursr = 1  ;
+FOR date %d = 1981q1 to %qslut;  // KAN ÆNDRES MED <dyn> option i kommende GEKKO
+	TIME %d %d;
+	SERIES kursg=kursg[-1]*((1+ibz)/(1+ibz[-1]))**varg*(1-afsg) + afsg;
+	SERIES kursr=kursr[-1]*((1+ibz)/(1+ibz[-1]))**varr*(1-afsr) + afsr;
+END;
+FOR date %d = 1980q3 to 1971q1 by -1;  // KAN ÆNDRES MED <dyn> option i kommende GEKKO
+	TIME %d %d;
+	SERIES kursr=(kursr[+1]-afsr[+1])/(((1+ibz[+1])/(1+ibz))**varr*(1-afsr[+1]));
+    SERIES kursg=(kursg[+1]-afsg[+1])/(((1+ibz[+1])/(1+ibz))**varg*(1-afsg[+1]));
+END;
+FOR string %var  = zbzg , zbzl , zbzr,  fbzz
+	string %vark = bzgk ,bzlk  , kbzr,  fbzk
+    string %kur  = kursg, kursg, kursr, kursg;
+	SERIES <1971q1 %qslut>   {%var}s = 0;
+	FOR date %d = 1971q2 to %qslut;  // KAN ÆNDRES MED <dyn> option i kommende GEKKO
+		time %d %d;
+		SERIES  {%var}s = {%var}s[-1] + diff({%var})/{%kur};
+	END;
+	TIME 1971 %qslut;
+	SERIES  {%vark} = ({%var}s + {%var}[1980q4] - {%var}s[1980q4])*{%kur};
+END;
+SERIES rkurss=(bzgk+bzlk+kbzr-fbzk-diff(zbzg+zbzl+zbzr-fbzz))/
+              (bzgk.1+bzlk.1+kbzr.1-fbzk.1);
+SERIES < 1971q2 %qslut > ikurss  = 1 ;
+FOR date %d = 1971q3 to %qslut;  // KAN ÆNDRES MED <dyn> option i kommende GEKKO
+	TIME %d %d;
+	SERIES ikurss  = ikurss[-1]*rkurss;
+END;
+TIME 1971q2 %qslut;
+SERIES kurss   = ikurss/ikurss[1980q4];
+//delete ikurss,rkurss;
+FOR string %var  = PBzz,OBzz,ABzz,LBzz,BBzz,IBzz,NBzz,HBzz,SBzz,RBzz,GBzz
+    string %vark = PBzk,OBzk,ABzk,LBzk,BBzk,IBzk,NBzk,HBzk,SBzk,RBzk,GBzk;
+    SERIES <1971q1 %qslut>   {%var}s = 0;
+	FOR date %d = 1971q2 to %qslut;  // KAN ÆNDRES MED <dyn> option i kommende GEKKO
+		time %d %d;
+		SERIES {%var}s =   {%var}s[-1] + diff({%var})/kurss;
+    END;
+	FOR date %d = 1971q2 to %qslut;  // KAN ÆNDRES MED <dyn> option i kommende GEKKO
+		time %d %d;
+		SERIES {%vark} = ( {%var}s + {%var}[1980q4] - {%var}s[1980q4] ) * kurss;
+    END;
+END;
+TIME 1971 %qslut;
+
+
+
+// UDENRIGSHANDEL
+// **************
+SERIES febra_sitc = fe3; // febra baseret på SITC /TSH 2017
+SERIES pebra_sitc = pe3;
+SPLICE febra = febra 90q1 febra_sitc;  // Nødløsning. Fjernes igen når SITC-data er tilbageført. /TSH
+SPLICE pebra = pebra 90q1 pebra_sitc;
+SERIES ebra  = febra*pebra; 
+
+SERIES fmbra_sitc = fm3              ; // fmbra baseret på SITC i stedet for BEC /TSH maj 2017
+SERIES pmbra_sitc = pm3              ;
+SPLICE fmbra = fmbra 90q1 fmbra_sitc ;  // Nødløsning, da lange tidsserier for pmvx og fmvx bruges længere nede. Fjernes igen når SITC-data er tilbageført. /TSH maj 2017
+SPLICE pmbra = pmbra 90q1 pmbra_sitc ;
+SERIES mbra  = fmbra*pmbra           ;
+SERIES fmol    = imol/pmbra; 
+SERIES fmbraol = imol/pmbra + fmbra; //Aggregering går godt - samme deflator
+SERIES pmbraol = (imol + mbra)/fmbraol;
+SERIES mbraol  = pmbraol * fmbraol ;
+FOR string %j=e,ev,ey,m,mv,my,yfe,ytr,ilbx,yfh,yfla,yfo,yf,ilvg,mbra,mbraol;
+ OPTION freq a;
+  COLLAPSE    f{%j}!a  = f{%j}!q avg ;
+  COLLAPSE     {%j}!a  =  {%j}!q avg ;
+  SERIES      p{%j}    =  {%j}/f{%j} ;
+//  SERIES      p{%j}_la = p{%j}[-1] ;
+ OPTION freq q; 
+//  INTERPOLATE p{%j}_la!q = p{%j}_la!a repeat;
+  SERIES      p{%j}      =  {%j}/f{%j} ;
+END;
+
+SERIES fes     = (pe_la*fe-pev_la*fev-pet_la*fet)/pes_la; 
+SERIES es      = e-ev-et;
+SERIES pes     = es/fes;
+SERIES fms     = (pm_la*fm-pmv_la*fmv-pmt_la*fmt)/pms_la;
+SERIES ms      = m-mv-mt;
+SERIES pms     = ms/fms;
+SERIES feol    = exol/pebra;
+SERIES feoverg = eoverg/pev;
+SERIES pet     = et/fet;
+SERIES pe      = e/fe;
+SERIES peol    = pebra;
+SERIES pey     = ey/fey;
+FOR string %j  = eani,eveg,ekqd,efsk,eol,ebra,epel;
+ COLLAPSE  f{%j}!a   = f{%j}!q avg   ;
+ SERIES     {%j}     = f{%j} * p{%j} ;
+ COLLAPSE   {%j}!a   =  {%j}!q avg   ;
+ OPTION freq a ;
+ SERIES    p{%j}     = {%j}/f{%j} ; FINDMISSINGDATA <replace = 0> p{%j};
+// SERIES    p{%j}_la  = p{%j}[-1]  ;
+ OPTION freq q ;
+// INTERPOLATE p{%j}_la!q = p{%j}_la!a repeat ;
+  SERIES      p{%j}      =  {%j}/f{%j} ;
+END;
+
+
+SERIES FEU_hj = 0.01*fmarked;
+SERIES FEU    = feu_hj/feu_hj.avgt(1990q1,1990q4);
+series feux   = feu;
+// Tilføjet TSH
+OPEN {%STI}\pr0809; SERIES feu_gl=pr0809:feu; CLOSE pr0809;
+SPLICE FEU = feu_gl 2004q4 feu; // kæder de to OECD-serier: dnk_xmvmkt (SITC 5-9; 1999-2004) og dnk_xmkt (varer og tjenester) TSH
+
+
+date %dd = edem.fromseries('dataend');
+SERIES <%dd+1 %qslut+4> edem      = edem[%dd]; //skal længere frem aht. leads i dkuplus4
+SERIES edemx     = edem;
+SERIES dku       = edem/edem.4-1;
+SERIES dkuplus4  = edem[+4]/edem-1;
+SERIES dkuminus4 = edem.4/edem.8-1;
+
+VAL %dk_param_afl = 1 - #DK_param[1] -#DK_param[2];
+SERIES dk=param:#DK_param[1]*dku+param:#DK_param[2]*dkuminus4+%dk_param_afl*dkuplus4;
+
+// SERIES < 1971q4 1971q4 > inmh=0; SERIES < 1971q4 1971q4 > inbh=0; SERIES < 1970q4 1970q4 > ddm=1; SERIES < 1970q4 1970q4 > ddb=1;
+
+
+
+
+
+
+// ØNSKEDE STØRRELSER
+SERIES cofcb=log(fcb)-param:#cofcb_param[1]*log(fcp)-param:#cofcb_param[2]*rente-param:#cofcb_param[3];
+SERIES <74q1 %qslut> coidp=idp-(param:#coidp_param[1] *ibz  +    param:#coidp_param[2] *(1-DRAD)*IMM+
+                             param:#coidp_param[3] *DRAD*IDI+ param:#coidp_param[4] *(1-DRAD)*IDI+
+                             param:#coidp_param[5] *DRAD +    param:#coidp_param[6] );
+SERIES coilo=ilo-(param:#coilo_param[1] *ibz      + param:#coilo_param[2]*(1-DRAL)*IMM+
+               param:#coilo_param[3] *DRAL*IDI + param:#coilo_param[4]*(1-DRAL)*IDI + param:#coilo_param[5]*DRAL+
+               param:#coilo_param[6] *renteml  + param:#coilo_param[7]*omkostled    + param:#coilo_param[8] );
+SERIES <1971q1 %qslut> coqq=log(qq)- param:#coqq_param[1]  *log(yfbx+pyfe*fyfe-ywby) - param:#coqq_param[2] *log(ibz)- param:#coqq_param[3];
+
+
+// AGGREGATER
+// **********
+//
+SERIES oind   = siaf+sbid+sd+toi+tenoi+tion + iov;
+SERIES oudg   = tyd+tye+tyo+typ+typi+tenou+(tkon-tiov)+sisub+pco*fco+pio*fio;
+SERIES pind   = tyd+tye+typ+typi+tyo+(tkon-tiov)+sisub+jten+tken-sie-tion+tien+y-iov;
+SERIES pudg   = siaf+sbid+sd+toi+pcp*fcp+pipb*fipb+fipm*pipm+pih*fih+filvg*pilvg+fit*pit;
+SERIES YDMAS  = yw-sbid+tyo+TYE+TYD+TYP+typi -askat-rof-sdu;
+
+LIST #pp = pmv,  pmy,  pmbraol ;
+LIST #qq = fmv, -fmy, -fmbraol ;
+#lspq = laspchainq(#pp , #qq, 2010);
+series mvx = #lspq.value; series fmvx = #lspq.quantity; series pmvx = #lspq.price; series pmvx_la = #lspq.price_lag;
+//// SE HER: demand er i mængder, men navngives uden prefix 'f' - bør ændres
+LIST #pp = pyf,  pilvg, pm;
+LIST #qq = fyf, -filvg, fm;
+#lspq = laspchainq( #pp , #qq , 2010 );
+series demand = #lspq.quantity; series pdemand = #lspq.price; series pdemand_la =  #lspq.price_lag;
+LIST #pp = pmbra, pyfe ;
+LIST #qq = fmbra, fyfe ;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+SERIES mbrak = #lspq.value; SERIES fmbrak = #lspq.quantity; SERIES pmbrak = #lspq.price; SERIES pmbrak_la = #lspq.price_lag;
+LIST #pp = pe0, pe1;
+LIST #qq = fe0, fe1;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 ) ;
+series efoed = #lspq.value; series fefoed = #lspq.quantity; series pefoed = #lspq.price; series pefoed_la = #lspq.price_lag;
+LIST #pp = pe2, pe4;
+LIST #qq = fe2, fe4;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+series eraav = #lspq.value; series feraav = #lspq.quantity; series peraav = #lspq.price; series peraav_la = #lspq.price_lag;
+// SE HER: Der ligger allerede en FEIND-serie i MONABK - problemfyldt/rodet at definere serier flere steder og endda med forskelligt indhold!!!!
+delete feind,peind;
+series peol = pebra;
+LIST #pp = pev,  pey,  pe0,  pe1,  pe2,  pe4,  peol,  pebra ;
+LIST #qq = fev, -fey, -fe0, -fe1, -fe2, -fe4, -feol, -febra ;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+series eind = #lspq.value; series feind = #lspq.quantity; series peind = #lspq.price; series peind_la = #lspq.price_lag;
+
+OPEN {%STI}\pr1703;
+splice feind = pr1703:feind 1991q1 feind; // SE HER: Nødløsning manglende tilbageføring af udenrigshand. Fjernes igen når SITC-data er tilbageført. /TSH maj 2017
+splice peind = pr1703:peind 1991q1 peind;
+close pr1703;
+
+
+LIST #pp = piom, pipm;
+LIST #qq = fiom, fipm;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+series im = #lspq.value; series fim = #lspq.quantity; series pim = #lspq.price; series pim_la = #lspq.price_lag;
+LIST #pp = piom, pipm, piy;
+LIST #qq = fiom, fipm, -fiy;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+series imx = #lspq.value; series fimx = #lspq.quantity; series pimx = #lspq.price; series pimx_la = #lspq.price_lag;
+LIST #pp = piob, pipb ;
+LIST #qq = fiob, fipb ;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+series ib = #lspq.value; series fib = #lspq.quantity; series pib = #lspq.price; series pib_la = #lspq.price_lag;
+LIST #pp = pyfbx, pyfla;
+LIST #qq = fyfbx, fyfla;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+series yfpx = #lspq.value; series fyfpx = #lspq.quantity; series pyfpx = #lspq.price; series pyfpx_la = #lspq.price_lag;
+LIST #pp = pyf,  pilvg, pm;
+LIST #qq = fyf, -filvg, fm;
+#lspq = laspchainq( #pp , #qq , 2010 );
+series demand = #lspq.quantity; series pdemand = #lspq.price; series pdemand_la =  #lspq.price_lag;
+// SE HER: Der ligger allerede FYD-serie i MONABK formentlig disponibel indkomst i faste prise. Bør ryddes op i navngivning
+//series py = y/fy;
+//LIST #pp = pm, py;
+//LIST #qq = fm, fy;
+//#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+//series fyd = #lspq.quantity; series pyd = #lspq.price; series pyd_la = #lspq.price_lag;
+
+SERIES peol_la = pebra_la;
+
+
+
+// Importvægte - xfmvx   IO-genererede bør vel regnes som tidsserier
+SERIES mvx_fcb    = 0.3814*fcb             ;
+SERIES mvx_fch    = 0.0352*fch             ;
+SERIES mvx_fcq    = 0.1433*fcq             ;
+SERIES mvx_fcov   = 0.2304*fcov            ;
+//SERIES m_fim    = 0.2818*(fiom+fipm-fiy) ;
+SERIES mvx_fimx   = 0.2818*fimx            ;
+SERIES mvx_fiy    = 0.0878*fiy             ;
+//SERIES m_fib    = 0.1195*(fipb+fiob)   ;
+SERIES mvx_fib    = 0.1195*fib             ;
+SERIES mvx_fih    = 0.1021*fih             ;
+SERIES mvx_fit    = 0.2750*fit             ;
+SERIES mvx_filvg  = 0.2651*filvg           ;
+SERIES mvx_fefoed = 0.3409*fefoed          ;
+SERIES mvx_feraav = 0.4522*feraav          ;
+SERIES mvx_febra  = 0.0188*febra           ;
+SERIES mvx_feind  = 0.4011*feind           ;
+SERIES mvx_fey    = 0.1032*fey             ;
+SERIES mvx_fes    = 0.0327*fes             ;
+LIST #pp =     pcb,    pch,    pcq,    pcov,    pimx,    piy,    pib,    pih,    pit,    pilvg,    pefoed,    peraav,    pebra,    peind,    pey,    pes;
+LIST #qq = mvx_fcb,mvx_fch,mvx_fcq,mvx_fcov,mvx_fimx,mvx_fiy,mvx_fib,mvx_fih,mvx_fit,mvx_filvg,mvx_fefoed,mvx_feraav,mvx_febra,mvx_feind,mvx_fey,mvx_fes;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+series xmvx = #lspq.value; series xfmvx = #lspq.quantity; series pxmvx = #lspq.price; series pxmvx_la = #lspq.price_lag;
+
+OPEN {%STI}\pr1906;
+  splice xfmvx    = pr1906:xfmvx    1992q1 xfmvx;  // SE HER: Her regnes lidt anderledes end i monagenr - men samme tal. Kan muligvis fikses, men der skal nok istedet tænkes over ny datakonstrutkjion
+  splice pxmvx_la = pr1906:pxmvx_la 1992q1 pxmvx_la; //Anvendes i ikke-lineær estimation til dlogxfmvxk 
+close pr1906;
+
+SERIES mkv =  movavg(fmvx/xfmvx,4);
+SERIES mkv =  mkv/mkv.avgt(2010q1,2010q4);
+
+// Importvægte - xfmbra  IO-genererede bør vel regnes som tidsserier
+SERIES mbra_fcb    = 0.0039*fcb  ;
+SERIES mbra_fch    = 0.0044*fch  ;
+SERIES mbra_fcq    = 0.0323*fcq  ;
+SERIES mbra_fcov   = 0.0251*fcov ;
+// SERIES mbra_fipm = 0.0063*(fiom+fipm);
+SERIES mbra_fim    = 0.0063*fim  ;
+SERIES mbra_fib    = 0.0169*fib  ;
+SERIES mbra_fih    = 0.0128*fih  ;
+SERIES mbra_fit    = 0.0411*fit    ;
+SERIES mbra_filvg  = 0.3065*filvg ;
+SERIES mbra_fefoed = 0.0304*fefoed ;
+SERIES mbra_feraav = 0.0212*feraav ;
+SERIES mbra_febra  = 0.8844*febra  ;
+SERIES mbra_feind  = 0.0079*feind  ;
+SERIES mbra_fey    = 0.0023*fey    ;
+SERIES mbra_fes    = 0.1003*fes    ;
+LIST #pp =      pcb,     pch,     pcq,     pcov,     pim,     pib,     pih,     pit,     pilvg,     pefoed,     peraav,     pebra,     peind,     pey,     pes;
+LIST #qq = mbra_fcb,mbra_fch,mbra_fcq,mbra_fcov,mbra_fim,mbra_fib,mbra_fih,mbra_fit,mbra_filvg,mbra_fefoed,mbra_feraav,mbra_febra,mbra_feind,mbra_fey,mbra_fes;
+#lspq = LASPCHAINQ( #pp, #qq, 2010 );
+series xmbra = #lspq.value; series xfmbra = #lspq.quantity; series pxmbra = #lspq.price; series pxmbra_la = #lspq.price_lag;
+SERIES tmy=0   ;
+SERIES tmbra=0 ;
+SERIES tmvx=(sim-tmy*fmy-tmbra*fmbra)/fmvx;
+
+
+//SE HER: Vægte bør trækkes fra param.bank
+SERIES ncp_hicp  = (0.3824*restx+0.2513*pimpor+0.0775*pener+0.0818*phusl+0.0532*pfodev+0.0255*poffyd)/(1-0.2162+0.0818); // febr. 2018/Msk & TSH
+SERIES ncp_hicp  = ncp_hicp/ncp_hicp.avgt(1980q1,1980q4);
+SERIES hlnio    =log(ywby+ywla-(ALBA*(qP-145)+0.667*ATPST*qP)/1000000-INVB);
+
+
+
+//Lagre
+SERIES < 1971q4 1971q4 >   afilbx=0;
+SERIES < 1972q1 %qslut> afilbx ^= filbx*pilbx_la/pdemand_la*.25  ;
+SERIES stock = afilbx + param:#STOCK_param[1];
+SERIES filbx_rp  = ( filbx * pilbx_la )/ pdemand_la;
+SERIES filvgx_rp = ( filvg * pilvg_la )/ pdemand_la-filbx_rp;
+
+//SE HER: Bestemmelse af parameter uklar følg op i monagenr.cmd
+// og ikke overenstemmelse mellem datagenerering og relation!!!!
+
+//INDSÆT R-interface her
+
+
+//PENSIONSSATS
+OPTION freq a;
+COLLAPSE fcp!a = fcp!q avg;
+COLLAPSE  cp!a =  cp!q avg;
+SERIES pcp = cp/fcp;
+SERIES <1971 1993>      bptty = ttypfp*ptty1/pcp ;
+SERIES <1994 getyear(%qslut)> bptty = ((ttypfp*ptty1)/1.26)/pcp; //nedkorrektion af øget
+SERIES pensats= .5*(bptty+bptty.1) ;                             //før-skatteværdi  
+//DATE %dd = pensats.fromSeries('dataEnd'); 
+//IF (%dd < %qslut_a);
+// series <%dd+1 %qslut_a> d_pensats = 0.005*pensats[%dd];
+// series <%dd+1 %qslut_a> pensats  ^= d_pensats;
+//END;
+
+SERIES B3262 = B32+B37+B42+B47+B52+B57+B62 ;
+SERIES gnst=(32*B32+37*B37+42*B42+47*B47+52*B52+57*B57+62*B62)/B3262;
+SERIES E67 = B3262*OHYP ;
+SERIES BE67 = E67*(GNST-30)/35 ;
+
+SERIES WFPD = (pensats*16*BE67)/1000000 ;
+SERIES demografi= wfpd/pensats ;
+OPTION freq q;
+interpolate pensats!q   = pensats!a   rep;
+SERIES < %qslut_aar_q1 %qslut> pensats %= .5;
+//
+//truncate <1971q1 %qslut> pensats;
+ 
+////// SE HER: LOG-transformationer - kan fjernes når ny gekko-formelfil er accepteret
+SERIES LOGDAGST      =     LOG(DAGST  );
+SERIES LOGFCB        =     LOG(FCB    );
+SERIES LOGFCH        =     LOG(FCH    );
+SERIES LOGFCP        =     LOG(FCP    );
+SERIES LOGFEFOED     =     LOG(FEFOED );
+SERIES LOGFEIND      =     LOG(FEIND  );
+SERIES LOGFERAAV     =     LOG(FERAAV );
+SERIES LOGFES        =     LOG(FES    );
+SERIES LOGFET        =     LOG(FET    );
+SERIES LOGFEY        =     LOG(FEY    );
+SERIES LOGFMBRAK     =     LOG(FMBRAK );
+SERIES LOGFMS        =     LOG(FMS    );
+SERIES LOGFMT        =     LOG(FMT    );
+SERIES LOGFMVX       =     LOG(FMVX   );
+SERIES LOGFSI        =     LOG(FSI    );
+SERIES LOGFYFH       =     LOG(FYFH   );
+SERIES LOGWH_H       =     LOG(WH_H   );
+SERIES LOGWQH_H_Z    =     LOG(WQH_H_Z);
+SERIES LOGWQQ_H_Z    =     LOG(WQQ_H_Z);
+SERIES DLOGWS_Z_H    =     DLOG(WS_Z_H);
+SERIES LOGWSQ_Z_H    =     LOG(WSQ_Z_H);
+SERIES LOGIPV        =     LOG(IPV    );
+SERIES LOGI_H        =     LOG(I_H    );
+SERIES LOGKP         =     LOG(KP     );
+SERIES LOGLNA        =     LOG(LNA    );
+SERIES LOGLNF        =     LOG(LNF    );
+SERIES LOGLNIO       =     LOG(LNIO   );
+SERIES LOGLO         =     LOG(LO     );
+SERIES LOGPCH        =     LOG(PCH    );
+SERIES LOGPCPDK      =     LOG(PCPDK  );
+SERIES LOGPCPDKEU    =     LOG(PCPDKEU);
+SERIES LOGPEBRA      =     LOG(PEBRA  );
+SERIES LOGPEFOED     =     LOG(PEFOED );
+SERIES LOGPEIND      =     LOG(PEIND  );
+SERIES LOGPEKQD      =     LOG(PEKQD  );
+SERIES LOGPENER      =     LOG(PENER  );
+SERIES LOGPENSATS    =     LOG(PENSATS);
+SERIES LOGPEOL       =     LOG(PEOL   );
+SERIES LOGPERAAV     =     LOG(PERAAV );
+SERIES LOGPES        =     LOG(PES    );
+SERIES LOGPET        =     LOG(PET    );
+SERIES LOGPEY        =     LOG(PEY    );
+SERIES LOGPFODEV     =     LOG(PFODEV );
+SERIES LOGPFRD       =     LOG(PFRD   );
+SERIES LOGPHUSL      =     LOG(PHUSL  );
+SERIES LOGPIEB       =     LOG(PIEB   );
+SERIES LOGPIEM       =     LOG(PIEM   );
+SERIES LOGPIH        =     LOG(PIH    );
+SERIES LOGPIMPOR     =     LOG(PIMPOR );
+SERIES LOGPIOB       =     LOG(PIOB   );
+SERIES LOGPIOM       =     LOG(PIOM   );
+SERIES LOGPIOV       =     LOG(PIOV   );
+SERIES LOGPIPB       =     LOG(PIPB   );
+SERIES LOGPIPM       =     LOG(PIPM   );
+SERIES LOGPKB_LA     =     LOG(PKB_LA );
+SERIES LOGPKM_LA     =     LOG(PKM_LA );
+SERIES LOGPMBRA      =     LOG(PMBRA  );
+SERIES LOGPMS        =     LOG(PMS    );
+SERIES LOGPMT        =     LOG(PMT    );
+SERIES LOGPMVX       =     LOG(PMVX   );
+SERIES LOGPOFFYD     =     LOG(POFFYD );
+SERIES LOGPXDEN      =     LOG(PXDEN  );
+SERIES LOGPYFE       =     LOG(PYFE   );
+SERIES LOGPYFH       =     LOG(PYFH   );
+SERIES LOGPYFLA      =     LOG(PYFLA  );
+SERIES LOGQBYX       =     LOG(QBYX   );
+SERIES LOGQCB        =     LOG(QCB    );
+SERIES LOGQCOV       =     LOG(QCOV   );
+SERIES LOGQCQ        =     LOG(QCQ    );
+SERIES LOGQIB        =     LOG(QIB    );
+SERIES LOGQIM        =     LOG(QIM    );
+SERIES LOGQO         =     LOG(QO     );
+SERIES LOGQQ         =     LOG(QQ     );
+SERIES LOGQQUS       =     LOG(QQUS   );
+SERIES LOGRESTX      =     LOG(RESTX  );
+SERIES LOGSDS        =     LOG(SDS    );
+SERIES LOGSIQAM      =     LOG(SIQAM  );
+SERIES LOGSIQEJ      =     LOG(SIQEJ  );
+SERIES LOGSIQS       =     LOG(SIQS   );
+SERIES LOGSIQUAB     =     LOG(SIQUAB );
+SERIES LOGSISUB      =     LOG(SISUB  );
+SERIES LOGTOPK       =     LOG(TOPK   );
+SERIES LOGTYD        =     LOG(TYD    );
+SERIES <1971 1978> dtye = 1; SERIES <1979 %qslut> dtye = 0;
+SERIES LOGTYE        =     LOG(TYE + dtye );
+////SE HER: ROD 
+SERIES <1971 1992> dtyo= 1; SERIES <1993 2010> dtyo = 0; SERIES <2011 %qslut> dtyo= 1;
+SERIES LOGTYO        =     LOG(TYO + dtyo );
+SERIES LOGTYP        =     LOG(TYP    );
+SERIES LOGTYPK       =     LOG(TYPK   );
+SERIES logtypsfp     =     log(typsfp);
+SERIES logtypsfo     =     log(typsfo);
+SERIES logtysas      =     log(tysas);
+SERIES logtyr        =     log(tyr);
+SERIES dlogbeskfrk = dlog(beskfrk)              ;
+SERIES DLOGFYFBX      =     DLOG(fyfbx);
+SERIES LOGYWO        =     log(ywo);
+SERIES LOGYWLA      =     log(ywla);
+SERIES LOGYWBY      =     log(ywby);
+
+SERIES ZDPC_    = ZDPC;
+SERIES ZDPC     = DPC;
+SERIES DM_      = DM;
+SERIES DTYO_    = DTYO;
+SERIES DTYE_    = DTYE;
+SERIES ZZBBYG_  = ZZBBYG;
+SERIES ZZMMASK_ = ZZMMASK;
+SERIES JTEN_    = JTEN;
+//SERIES JTEN     = 0;
+
+SERIES PY = Y/FY;
+
+
+run monamemo.gcm ;
+
+
+//LIDT SMÅTING, DER FORTSAT MÅ EN TUR OMKRING AREMOS (Lagrange interpolering)
+OPEN {%sti}\adambk; open {%sti}\adambkx;
+OPTION freq a;
+SERIES ufo = adambkx:upfoi ;
+SERIES ufp = adambkx:upfpi ;
+SPLICE ufo = adambk:ufo 1984 adambkx:upfoi ;
+SPLICE ufp = adambk:ufp 1984 adambkx:upfpi ;
+CLOSE adambk; CLOSE adambkx;
+
+open {%sti}\adambkx;
+OPTION freq a;
+time 1966 1970;
+SERIES dpcp   = dlog(pcp);
+SERIES drkp = dlog(adambkx:phk/adambkx:pcp);
+SERIES < 1970 1970 > drkpe_ar = drkp.avgt(1968,1970);
+SERIES < 1970 1970 > dpcp_ar  = dpcp.avgt(1968,1970);
+SERIES < 1972 %qslut > pm59  = adambkx:pm59;
+CLOSE adambkx;
+
+OPTION freq a;
+OPEN   {%sti}\adambkx;
+OPEN   {%sti}\adambkx00;
+// SE HER: SERIER I ADAMBANK ER TILBAGEFØRT - SPLICE KUN FOR AT RAMME AREMOS-BANK
+SPLICE phkx = adambkx00:phk 1968 adambkx:phk; 
+SPLICE pcpx = adambkx00:pcp 1968 adambkx:pcp; 
+time 1966 1970;
+SERIES drkp = dlog(adambkx:phk/adambkx:pcp);
+SERIES dpcp = dlog(adambkx:pcp);
+VAL %drkp0 = drkp.avgt(1968,1970);
+VAL %dpcp0 = dpcp.avgt(1968,1970);
+CLOSE  adambkx;  
+CLOSE  adambkx00;
+
+SERIES <1971 1971>  wflkgud = 2.555;
+SERIES <1971 1971>  wflkgdm = 1.449;
+
+//// SE HER:pship mangler tidlige observationer - hentes fra gammel ADAMbank 
+/// (kan overvejes om det fortsat er nødvendigt i forhold til kommende reestimation - bør i givet fald interpoleres med udvikling i oliepris og ikke lagrange)
+//time 1974 %qslut;
+//SERIES      xxx   = pship*eusd ;
+//COLLAPSE    xxx.a = xxx.q  avg ;
+//OPEN %STI\adambk;
+//OPTION freq a;
+//CREATE yyy; SPLICE yyy = adambk:pxqs 1991 xxx;
+//CLOSE ADAMBK; 
+//OPTION freq q;
+//interpolate <freq=q 1974 #qwq|q4> tyt.q = tut.a lagrange=tut.q average;
+//splice shipdk=tyt #qwq|q4 tut ; 
+//ser pship = shipdk/eusd;
+//delete tut.a,tut.q,tyt.q,tot.a,shipdk.q;
+//unassign qwq;
+
+// SE HER: Menningsløst med lagrange interpoleret PTTY1 - bør vel bare øge overførselsniveauer med samme pct.sats i forhold til året før
+TIME 1966 %qslut;
+export <tsd> monabank:ufo!a,monabank:ufp!a,monabank:ptty1!a,monabank:te!a,monabank:nbs!a, monabank:phkx!a, monabank:pcpx!a, monabank:wflkgud!a, monabank:wflkgdm!a, monabank:pm59!a file=til_wa;
+option freq q;
+export <tsd> monabank:pmvx!q file=til_waq;
+cls;
+PAUSE 'HUSK AT KØRE g:\Modelenheden\MONA\Gekko\data\lagrange.cmd i AREMOS <ENTER> for at fortsætte';
+//sys 'c:\Program Files\WAREM32\Barem32.exe g:\Modelenheden\MONA\Gekko\data\lagrange.cmd';
+import <tsd> g:\Modelenheden\MONA\Gekko\data\banker\fra_wa.tsd ;
+
+DATE %d = ter.fromseries( 'dataend' );
+series <%d+1 %qslut> ter = ter[%d];
+
+DATE %d = pm59.fromseries( 'dataend' );
+series <%d+1 %forecast_st-1 dyn> pm59 = pm59[-1]*(pmvx/pmvx[-1]);
+
+
+SERIES LOGPTTY1 = log(ptty1);
+
+time 1969 %qslut;
+SPLICE kpxs  = kpx  1971q1 kp;
+SPLICE pcpxs = pcpx 1971q1 pcp;
+series pcpx = pcpxs;
+series rkpxs = kpxs/pcpxs;
+series <1970q4 1970q4> drkpe_ar = %drkp0;
+series <1970q4 1970q4> dpcpe_ar = %dpcp0;
+for DATE %dd = 1971q1 to %qslut;
+ TIME %dd %dd;
+ series drkpe_ar  = drkpe_ar[-1] + 0.200*(dlogy(rkpxs)-drkpe_ar[-1]);
+ series dpcpe_ar  = dpcpe_ar[-1] + 0.125*(dlogy(pcpxs) -dpcpe_ar[-1]);
+end;
+time 1971 %qslut;
+
+SERIES kvusd=flogusdk/(flogusdk+flogdemk);
+SERIES kvdem=flogdemk/(flogusdk+flogdemk);
+
+//SE HER: kvusd og kvdem fremskrives uændret fra 2008 - skal fjerne ved ny finansiel delmodel
+//        Der skal findes anden løsning for så vidt angår imm_3m
+open banker\{%seneste_bank} as s_b;
+SERIES <2007q1 %qslut> monabank:kvusd %= (s_b:kvusd/s_b:kvusd[-1]-1)*100;
+SERIES <2007q1 %qslut> monabank:kvdem %= (s_b:kvdem/s_b:kvdem[-1]-1)*100;
+SERIES <2005q1  %qslut>   monabank:imm_3m = s_b:imm_3m;
+DATE %dd = pxden.fromseries('DataEnd');
+series              d_pxden = (s_b:pxden/s_b:pxden[-1]-1)*100;
+SERIES <%dd+1 %qslut> pxden %=  d_pxden;
+DATE %dd = ibodem.fromseries('dataEnd');
+SERIES <%dd+1 %qslut> ibodem = s_b:ibodem; // Nødløsning - skal fikses på anden vis (kilden udtørrer i 2014, jf. g:\MONA\ifsmobk.cmd ) /TSH maj 2017
+DATE %dd = iusd.fromseries('dataEnd');
+SERIES  <%dd+1 %qslut> iusd = s_b:iusd;    // Nødløsning - skal fikses på anden vis (kilden udtørrer i 2014, jf. g:\MONA\ifsmobk.cmd ) /TSH maj 2017
+close s_b;
+
+//SE HER: Gamle serier, der ikke længere kan opdateres
+DATE %dd = maxtid2.fromseries('dataend');
+SERIES <%dd+1 %qslut> maxtid2 = maxtid2[%dd];
+DATE %dd = gqqg.fromseries('dataend');
+SERIES <%dd+1 %qslut> gqqg = gqqg[%dd];
+DATE %dd = glon.fromseries('dataend');
+SERIES <%dd+1 %qslut> glon = glon[%dd];
+DATE %dd = gas.fromseries('dataend');
+SERIES <%dd+1 %qslut> gas = gas[%dd];
+DATE %dd = dren.fromseries('dataend');
+SERIES <%dd+1 %qslut> dren = dren[%dd];
+DATE %dd = bqqq.fromseries('dataend');
+SERIES <%dd+1 %qslut> bqqq = bqqq[%dd];
+DATE %dd = bqqb.fromseries('dataend');
+SERIES <%dd+1 %qslut> bqqb = bqqb[%dd];
+
+
+SERIES logpxden = log(pxden);
+
+// SE HER: Parameteren "0.01643504" er bestemt ved ikke lineær estimation i AREMOS. Der er forberedt flytning af estimation til R
+SERIES dlogxfmvxk=dlog((xfmvx-0.01643504*filbx*(pilbx_la/pxmvx_la))) ;
+
+
+SERIES iudlg=kvdem*ibodem+(1-kvdem)*iusd;
+
+SERIES fkhoe           =  exp(log(yd_h/pcp)+((param:#kp_param[3])*log(kp/pcp)+(param:#kp_param[4])*((1-tsuih)*ib30+ssats-dpcpe_ar)+ 
+                             (param:#kp_param[5])*((1-tsuih)*ibmin00+ssats+afdr)+(param:#kp_param[6])*drkpe_ar+(param:#kp_param[8])) /(param:#kp_param[7]));  
+
+SERIES LOGPM59         =  LOG(PM59   );
+
+SERIES aws_z_h = ws_z_h; //SE HER: Syret ws_z_h har kun værdier frem til 1996 uden denne???
+
+// Skærer observationer væk - aht. nowcast
+FOR string %cut = iudlg,kvdem,kvusd,LOGPXDEN,cofcb,ssats,skat,lejev,tuc,logtuc,RLNIB,RLNIM,CUB,CUM,sighj,rente,sigxo,tsdl,phk,phv,tsuih,tax,pxden;
+ time 1970 %forecast_st-1;
+ truncate {%cut};
+END;
+time 1970 %qslut;
+
+
+index <mute showbank=no> monabank:*!q to #monabank_lst;
+LIST #mangler = #mona_var.except(#monabank_lst);
+pipe mangler;
+disp #mangler;
+pipe <stop>;
+
+
+close monabank;close param;

@@ -1,3 +1,21 @@
+In gnu plot file extension has to be lower case.
+
+// unexpected behavior
+ser1 <2001 2005> = 1,2,3,4,5;
+copy ser1 to ser2;
+rebase <prefix=rb_> ser2 2002; //result expected in rb_ser2
+index rb_*;
+index *;
+prt <2001 2005> ser1, ser2, rb_ser1; //rb_ser2 does not exist
+
+// expected behavior
+ser1 <2001 2005> = 1,2,3,4,5;
+ser2 = ser1;
+rebase <prefix=rb_> ser2 2002; //result expected in rb_ser2
+index rb_*;
+index *;
+prt <2001 2005> ser1, ser2, rb_ser2; //rb_ser1 does not exist
+
 // NOT A BUG, BUT GNUPLOT ATTRIBUTES IN '' ARE CASE SENSITIVE:
 
 //Code corresponding to Gekko 3.0.

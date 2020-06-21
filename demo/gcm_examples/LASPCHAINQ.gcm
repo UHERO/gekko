@@ -1,0 +1,70 @@
+// Danner Kædet Laspeyres mængdeindeks og paascheprisindeks for kvartalsserier.
+// Aggregatet dannes for den længst mulige periode. Periode og frekvens sættes afslutnngsvis som før kald af funktionen
+// INPUT    : Liste over prisserier, liste over mængdeserier (foranstillet "'-" indebærer at serien trækkes ud af indeks), referenceår: (pris = 1)
+// OUTPUT   : MAP der indeholder følgende (series value, series quantity, series price, series price_lag).
+
+
+FUNCTION MAP  LASPCHAINQ(list #p, list #q, date %refaar);
+	date   %current_start = currentPerStart() ;
+	date   %current_end   = currentPerEnd()   ;
+	string %current_freq  = currentFreq()     ;
+ OPTION freq q;
+  date %st = {#p[1]}.fromseries('DataStart');
+  date %sl = {#p[1]}.fromseries('DataEnd');
+  for string %i = #p + #q;
+	%ss = %i.startswith( '-' );
+		if ( %ss == 1 );
+			%ii = %i.substring(2,%i.length()-1) ;
+		 else;
+			string %ii = %i;
+		end;
+		date %st_temp = %ii.fromSeries( 'DataStart' );
+		if ( %st_temp > %st );
+			date %st = %st_temp;
+		end;
+		date %sl_temp = %ii.fromSeries( 'DataEnd' );
+		if ( %sl_temp < %sl );
+			date %sl = %sl_temp;
+		end;
+  end;
+  time %st %sl;
+  option freq a;
+  for string %p = #p string %q = #q;
+		%ss = %q.startswith( '-' );
+		if ( %ss == 1 );
+			%qq = %q.substring(2,%q.length()-1) ;
+		 else;
+			string %qq = %q;
+		end;
+	  collapse {%qq}!a = {%qq}!q avg;
+	  option freq q;
+	  series v_{%p} = {%p} * {%qq};
+	  option freq a;
+      collapse v_{%p}!a = v_{%p}!q avg;	  
+	  series  {%p}    = v_{%p} / {%qq} ; FINDMISSINGDATA <replace = 0> {%p};  //Missing data opstår her når mængden bliver nul - prisen sættes derefter ligeledes til nul taget fra monagenr!
+  	  series  {%p}_la = {%p}[-1]; 
+  end;
+  #LPAGG = laspchain(#p, #q, %refaar);
+   p_la  = #LPAGG.p[-1];
+   option freq q;
+  INTERPOLATE p_la!q = p_la!a repeat;
+  series value    = 0 ;
+  series quantity = 0 ;
+  for string %p = #p string %q = #q;
+	 interpolate {%p}_la!q = {%p}_la!a repeat;
+	 %ss = %q.startswith( '-' );
+     	if ( %ss == 1 );
+			%qq = %q.substring(2,%q.length()-1);
+			VAL %fortegn = -1;
+		 else;
+			string %qq = %q;
+			VAL %fortegn =  1;
+		end;
+  	 series value 		= value    + {%p}    * %fortegn * {%qq};
+	 series quantity	= quantity + {%p}_la * %fortegn * {%qq}/p_la;  
+  end;
+  MAP #out_map = ( series value = value , series quantity = quantity , series price = value/quantity , series price_lag = p_la );
+  time %current_start %current_end;
+  option freq {%current_freq};
+  RETURN  #out_map;
+END;
