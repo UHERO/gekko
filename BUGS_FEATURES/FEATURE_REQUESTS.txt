@@ -2,7 +2,7 @@ When producing a large number of plots (visualizing individual series, diagnosti
 
 Provide an ability to open gekko data files (gbk banks) in R. The RProtoBuf package may provide the necessary tools, but I could not make it work. (https://cran.r-project.org/web/packages/RProtoBuf/index.html)
 
-
+Expand the possible meta information stored in series objects and have methods to retrieve that info.
 
 
 IMPLEMENT INTERPOLATION METHODS AVAILABLE IN AREMOS
