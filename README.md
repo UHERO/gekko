@@ -8,8 +8,8 @@ AREMOS alternative
 * The folder names should be self-explanatory: 
   * `BUGS_FEATURES`: open and solved bugs in Gekko and feature requests; 
   * `demo`: demo code from the Gekko website; 
-  * `CMD`: code developed by UHERO; 
-      * `LIB`: functions developed for UHERO needs; 
+  * `CMD`: code developed by UHERO, main file names listed below; 
+      * `LIB.gcm`: functions developed for UHERO needs; 
       * `USSOL.gcm`: deterministic model for the US economy; 
       * `CASOL.gcm`: deterministic allocation of aggregate forecasts to the industry and county level; 
           * `EQUCA.gcm`: equations for the county allocation; 
