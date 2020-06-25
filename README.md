@@ -14,7 +14,10 @@ AREMOS alternative
   
 ## Status
   
-06/20/2020
+06/25/2020
+Add ghostscript to combine individual pdfs into a single file. Explore additional data export options.
+
+006/20/2020
 Load, combine and export scenarios, plot scenarios, new function for calculating multi-year average growth.
 
 06/16/2020
