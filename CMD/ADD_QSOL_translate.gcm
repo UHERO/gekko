@@ -1,0 +1,2188 @@
+
+//!!!!!!!!!!!!!!!!!!!!!!!!    CANCEL OUT OF AREMOS — CNTRL+SHIFT+C
+//
+//!!!!!!!!!!!!!!!! INSTRUCTIONS:
+// SET ASSUMPTIONS FOR OIL PRICES—THESE WILL AFFECT ROOM RATES
+// Set Assumptions for RILGFCY
+// SET ASSUMPTIONS FOR ARRIVALS, THEN SHARES BY ISLAND
+// LOOK AT LOS
+// LOOK AT PPRM
+//!!!!!!!!!!!!!!!
+
+%nCov20Q1 = 'Y';   // with only Chinese visitor loss and jp econ effects, only turn off to do a pre-cov scenario
+
+run scen_settings.cmd;
+
+%COMPSOL = 'QSOL20Q2base';
+option freq Q;  
+time 1980:1 2050:4;
+
+// check to see if these are necessary
+%JOBADJ = 'Y';
+%INCADJ = 'N';
+
+%CPIFIX = 'N';
+%PICTFIX = 'N';
+%SHOWOCUP = 'N';
+
+//obey #adddir|tourSA_cludge;
+
+//!!!!************************************* MISC CLUDGE
+tgbct_r@hi!q = tgbct@hi!q*100/pictsgf@hon!q;
+
+option freq A;                    // apparently these are needed adjust for adding up constraints
+work:NR@NBI!A = NR@HAW!A+NR@KAU!A+NR@MAU!A; 
+work:NR@HON!A = NR@HI!A-NR@NBI!A; 
+work:NR@HON.SOLA = NR@HON!A;
+WORK:NR@NBI.SOLA = NR@NBI!A;
+
+WORK:VADC@NBI!A = VADC@HI!A-VADC@HON!A;
+option freq Q;
+WORK:VADC@NBI!Q = VADC@HI!Q-VADC@HON!Q;
+
+if ('{%JOBADJ}'=='Y');
+    for string %jobfor = eaf, e_trade; /* TRANSLATE: Check that string type is ok */
+        for string %loc = hi, hon, nbi; /* TRANSLATE: Check that string type is ok */
+        work:{%jobfor}@{%loc}!q <1980 2020Q1>= {%blsBNK}:{%jobfor}@{%loc}!q;
+        end;
+    end;
+END; // END if;
+
+//open bls_031920.bnk as old;
+//series work:cpi@hon.q = old:cpi@hon.q;
+//series work:pchssh@hon.q = old:pchssh@hon.q;
+//series work:pcen@hon.q = old:pcen@hon.q;
+//series work:pcfbfd@hon.q = old:pcfbfd@hon.q;
+//close old;
+
+//******************************************
+// ASSUMPTIONS——
+//******************************************
+
+tell '************ ASSUMPTION CODE FOR OIL PRICE SCENARIOS **********';
+
+
+
+
+
+
+
+
+
+
+
+
+!***********************************************
+
+if ('#import_q'=='Y');
+    set frequency q;
+
+    import<format=tsd> from I:\MacMiniData\udaman_tsd\misc_q.tsd;
+        
+    if ('#load'=='Y');
+        for list_load = #qlist;
+            series <#bnk_strt #bnk_end textsource no modsource no>  #dbnk|:#list_load = work:#list_load;
+        end;
+    end;
+end;
+
+set freq q;
+
+series work:POILADJBNS@US.Q = WORK:POILEIASTNS@US.Q;
+
+
+
+!***********************************************
+
+if ('#import_a'=='Y');
+    set frequency a;
+
+    import<format=tsd> from I:\MacMiniData\udaman_tsd\misc_a.tsd;
+        
+    if ('#load'=='Y');
+        for list_load = #alist;
+            series <#bnk_strt #bnk_end textsource no modsource no>  #dbnk|:#list_load = work:#list_load;
+        end;
+    end;
+end;
+
+set freq a;
+
+series work:POILADJB@US.A = work:POILEIALTB@US.A;  !initialize adjusted baseline as the LTB series
+series work:POILADJB@US.A = work:POILEIAST@US.A;  !initialize adjusted baseline as the annual averages of the short-term series
+series work:diffsers = 0 repeat *;                !intialize the diffsers series as 0, if you dont start as 0 then it will have NAs
+
+assign endper1 from  poileiast@us.a per2;
+assign endper2 from  poileialtb@us.a per2;
+
+set per #endper1 #endper2;
+series  work:diffsers = work:POILEIAST@US.A - work:POILEIALTB@US.A;  !diffsers is the difference between short-term and long-term forecasts
+
+set per #endper1|+1 #endper2;
+series  work:diffsers = (work:diffsers.1)/1.75;           !distribute the difference forward dividing by 1.75 each year -- spread out diff over 10 years 
+series  work:POILADJB@US.A = work:POILADJB@US.A + work:diffsers;
+print  poiladjb@us.a, poileiast@us.a, poileiaLTB@us.a, diffsers;
+
+! Interpolation:
+
+set freq q;
+set per #endper1+1 #endper2;
+interpolate tempvar work:poiladjb@us.a linear average;
+series<#endper1|+1 #endper2|> work:poiladjbns@us.q = tempvar;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//!! load history
+WORK:poil@us.{%VRSN} = US:poil@us!q;
+%last_oil = us:poil@us!q per2;
+
+//!! append eia forecast
+work:poil@us.{%VRSN} <{%last_oil}+1 2050:4>= MISC:poiladjbns@us!q;
+//Now delete values and replace with assumptions
+work:poil@us.{%VRSN} <2020:1 2050:4>= M rep *;
+// Q1 (57+ 50 + 32)/3 = 46
+// 											20Q1                  
+//series<2020:1 2020:4> work:poil@us.|#VRSN| = 49, 41;    ! interim
+work:poil@us.{%VRSN} <2020:1 2020:4>= 46,  25;  // 3/21/20
+
+//  merge futures prices from  https://www.theice.com/products/213/WTI-Crude-Futures/data 
+//  with the STEO short run forecast from https://www.eia.gov/outlooks/steo/data/browser/#/?v=8&f=M&s=0&ctype=linechart&maptype=0
+
+work:poil@us.{%VRSN} <2022:4 2022:4>= MISC:poiladjbns@us!q - 21;  // adhoc smoothing
+work:poil@us.{%VRSN} <2050:4 2050:4>= MISC:poiladjbns@us!q -8;  // adhoc smoothing
+
+smooth WORK:Poil@us.{%VRSN} = WORK:Poil@us.{%VRSN} linear; 
+
+work:poil@us.{%VRSN}% = pchya(work:poil@us.{%VRSN});
+//
+// tell '************ compare OIL PRICE SCENARIOS to previous vintage **********';
+// 
+// goto ENDcompare1;
+// open {%COMPSOL} as old;
+// time 2015 2025;
+//  
+// simgp poil@us.oldsol, WORK:poil@us.{%VRSN}, poiladjbns@us!q, poil@us!q;
+// prt us:poil@us!q, WORK:poil@us.{%VRSN},  misc:poiladjbns@us!q, poil@us.oldsol, work:poil@us.sol%, pchya(poil@us.oldsol), poileiabQ2ns@us!q;
+// 
+// option calendar collapse average;
+// 
+// close old;
+// 
+// target ENDcompare1;
+// 
+// time 2005 2050;
+// //SERIES WORK:POIL@US.Q = WORK:POIL@US.|#VRSN|;
+// //SERIES WORK:POIL@US.Q% = WORK:POIL@US.|#VRSN|%;
+
+
+tell '************ ASSUMPTION CODE FOR 10 year Treasury Bond **********';
+
+// Source data
+// Futures market https://www.cmegroup.com/trading/interest-rates/us-treasury/10-year-us-treasury-note.html
+
+//  Daily 10-Year Treasury Constant Maturity Rate
+//  http://research.stlouisfed.org/fred2/series/DGS10?cid=115
+  
+//   Survey of Professional Forecasters      
+//   http://www.philadelphiafed.org/research-and-data/real-time-center/survey-of-professional-forecasters
+
+//2019Q2   Q3   Q4    20Q1   20Q2
+//2.6     2.6  2.7    2.7    2.8
+
+//  2019   2020  2021     2022
+//  2.6   2.8    3.1     3.1
+
+//!! load history
+time 1980 2050;
+WORK:rilgfcy10@us.{%VRSN} = US:rilgfcy10@us!q;
+
+//***************************   Pick short-run rates' ; 
+//***************************' ;
+// Q3   (2.1+1.6+1.8)/3 
+rilgfcy10@us.{%VRSN} <2020:1 2020:4>= 1.3, .8;
+rilgfcy10@us.{%VRSN} <2021:2 2021:2>= 1.5;  
+rilgfcy10@us.{%VRSN} <2023:2 2023:2>= 2.2;  
+
+//***************************   Set LR' ; 
+//set freq a;
+//set per 2000 2018;
+//analyze rilgfcy10@us.a-pchya(cpi@us.a);
+// 2.5 is 40 year average real interest rate
+// But the real rate has only averaged 1.3% since 2000
+//  SPF 10 year cpi inflation rate is 2.2%  as of May 2019 Q2 release
+
+option freq q; 
+time 1980 2050;
+
+rilgfcy10@us.{%VRSN} <2025:4 2025:4>= 2.4; 
+rilgfcy10@us.{%VRSN} <2030:4 2030:4>= 1.3 + 1.7; 
+rilgfcy10@us.{%VRSN} <2050:4 2050:4>= 1.3 + 1.8; 
+//print rilgfcy10@us.sol;
+
+smooth rilgfcy10@us.{%VRSN} = rilgfcy10@us.{%VRSN} linear; 
+//print rilgfcy10@us.sol;
+
+// ************* Compare 10 year bond forecast to previous vintage' ;
+
+// goto ENDcompare2;
+// open {%COMPSOL} as old;
+// time 2000 2030; 
+// option calendar collapse average;
+// //graph<go> using I:\gra\M3L1B_Y5F.gra  US:RILGFCY10@US.Q-pchya(cpi@us.q);      
+// plot<go> using I:\gra\M3L1B_Y5F.gra  US:RILGFCY10@US!Q, work:RILGFCY10@US.sol, old:RILGFCY10@us.oldsol;      
+// plot<go> using I:\gra\M3L1B_Y5F.gra  work:RILGFCY10@US.sol - pchya(cpi@us!q);
+// 
+// prt US:RILGFCY10@US!Q , work:RILGFCY10@US.SOL, old:RILGFCY10@US.oldSOL, work:RILGFCY10@US.sol - pchya(cpi@us!q);
+// //pause; 
+// close old;
+// 
+// target ENDcompare2;
+// 
+// 
+// option freq Q;  time 1980:1 2050;
+
+//********************************************************************************
+//   PICK SHORT-TERM SOLUTIONS FOR VISITOR ACCOMMODATION AND PERSONS PER ROOM
+//********************************************************************************
+
+//*****  @HON  *****
+TRMS@HON.{%VRSN} <1980:1 2019:4>= TRMS@HON!Q;
+TRMS@HON.{%VRSN} <2020:1 2022:4>= TRMS@HON.{%VRSN}[2019:4] rep *;          
+
+// start Number of Room Change in 2015:3 when TVR_est starts
+NRMCHG@HON <2015:3 2022:4>= 0.0 rep *;
+
+//SERIES<2015:3 2019:4> TVR_EST_HON = 2713.66,  3082.21,  3424.80,  3942.61,  4355.85,  4998.91,  5583.45,  6245.43,  6721.63,  7092.48,  7463.33,  7834.18,  7853.86,  8714.37,  8502.32,  10011.02,  8853.25,  8250.295;
+
+//SERIES<2015:3 2019:4> TVR_EST@HON = TVR_EST_HON/1000;
+//SERIES<2015:3 2019:4> NRMCHG@HON = TVR_EST@HON;
+NRMCHG@HON <2015:3 2020:4>= TVRMNS@HON/1000;
+
+prt<2015:3 2019:4> TVRMNS@HON/1000, NRMCHG@HON;
+//
+//SERIES<2019:1 2019:4> NRMCHG@HON = NRMCHG@HON +  .131/4;   ! NEED TO NOT USE LAG TO WORK WITH TVR_EST
+
+NRMCHG@HON <2020:2 2020:4>= NRMCHG@HON.1 -  8/3;   
+NRMCHG@HON <2021:1 2021:4>= NRMCHG@HON.1 +  .039/4;
+NRMCHG@HON <2022:1 2022:4>= NRMCHG@HON.1 +  .019/4;
+
+TRMS@HON.{%VRSN} <2015:3 2022:4>= TRMS@HON.{%VRSN} + NRMCHG@HON!Q ;
+prt<2017:1 2022:4> NRMCHG@HON!Q, TVRMNS@HON/1000, TRMS@HON.SOL, TRMS@HON!Q;
+
+//********* Add factors ***************** 
+//SERIES <2020:4 2020:4> TRMS@HON.ADD = 0.01;
+//SERIES <2024:1 2024:4> TRMS@HON.ADD = 0.02;
+//SERIES <2050:4 2050:4> TRMS@HON.ADD = 0.025;
+//SMOOTH TRMS@HON.ADD = TRMS@HON.ADD LINEAR;
+
+if ('{%nCovBase}'=='Y' or '{%nCovLow}'=='Y' or '{%nCoVHigh}'=='Y');
+TRMS@HON.ADD <2020:4 2020:4>= 0.01;
+TRMS@HON.ADD <2024:1 2025:4>= 0.02;
+TRMS@HON.ADD <2050:4 2050:4>= 0.005;
+smooth TRMS@HON.ADD = TRMS@HON.ADD LINEAR;
+END;
+
+//**** @MAU  ***** 
+TRMS@MAU.{%VRSN} <1980:1 2019:4>= TRMS@MAU!Q  ;          
+TRMS@MAU.{%VRSN} <2020:1 2024:4>= TRMS@MAU.{%VRSN}[2019:4] rep *;
+
+// start Number of Room Change in 2015:3 when TVR_est starts
+NRMCHG@MAU <2015:3 2024:4>= 0.0 rep *;
+
+//SERIES<2015:3 2019:4> TVR_EST_MAU = 2449.32,  2781.97,  3091.19,  3558.55,  3931.54,  4511.97,  5039.56,  5637.06,  6066.87,  6401.59,  6736.32,  7071.04,  7875.61,  7651.61,  6767.76,  9009.70,  9839.35,  9667.223;
+//SERIES<2015:3 2019:4> TVR_EST@MAU = TVR_EST_MAU/1000;
+NRMCHG@MAU <2015:3 2019:4>= TVRMNS@MAU/1000;
+prt<2015:3 2019:4> TVRMNS@MAU, NRMCHG@MAU;
+
+NRMCHG@MAU <2019:1 2019:4>= NRMCHG@MAU + .0/4;  // NEED TO NOT USE LAG TO WORK WITH TVR_EST
+NRMCHG@MAU <2020:1 2020:4>= NRMCHG@MAU.1 + .186/4 + .6/4;  // SECOND ADDITION IS FOR TVR GROWTH
+NRMCHG@MAU <2021:1 2021:4>= NRMCHG@MAU.1 + .377/4 + .3/4;  // SECOND ADDITION IS FOR TVR GROWTH
+NRMCHG@MAU <2022:1 2022:4>= NRMCHG@MAU.1 + .0/4;
+NRMCHG@MAU <2023:1 2023:4>= NRMCHG@MAU.1 + .581/4;
+NRMCHG@MAU <2024:1 2024:4>= NRMCHG@MAU.1 + .299/4;
+
+TRMS@MAU.{%VRSN} <2015:3 2024:4>= TRMS@MAU.{%VRSN} + NRMCHG@MAU!Q;
+
+prt<2017:1 2024:4> NRMCHG@MAU!Q, TVRMNS@MAU, TRMS@MAU.SOL, DIFF(TRMS@MAU.SOL), DIFF(NRMCHG@MAU);
+
+//********* Add factors *****************
+//SERIES <2021:1 2050:4> TRMS@MAU.ADD = .017;
+//SERIES <2050:4 2050:4> TRMS@MAU.ADD = .017;
+//SMOOTH TRMS@MAU.ADD = TRMS@MAU.ADD LINEAR;
+
+if ('{%nCovBase}'=='Y' or '{%nCovLow}'=='Y' or '{%nCoVHigh}'=='Y');
+TRMS@MAU.ADD <2021:1 2021:4>= .017;
+TRMS@MAU.ADD <2025:4 2025:4>= .017;
+TRMS@MAU.ADD <2026:1 2026:1>= 0.0;
+TRMS@MAU.ADD <2040:4 2040:4>= 0.01;
+TRMS@MAU.ADD <2050:4 2050:4>= 0.01;
+smooth TRMS@MAU.ADD = TRMS@MAU.ADD LINEAR;
+END;
+
+
+//**** @HAWAII  *****
+TRMS@HAW.{%VRSN} <1980:1 2019:4>= TRMS@HAW!Q  ;          
+TRMS@HAW.{%VRSN} <2020:1 2022:4>= TRMS@HAW.{%VRSN}[2019:4] rep *;
+
+// start Number of Room Change in 2015:3 when TVR_est starts
+NRMCHG@HAW <2015:3 2022:4>= 0.0 rep *;
+
+//SERIES<2015:3 2019:4> TVR_EST_HAW = 1823.76,  2071.44,  2301.69,  2649.68,  2927.41,  3359.59,  3752.44,  4197.33,  4517.37,  4766.60,  5015.84,  5265.07,  5780.62,  6115.13,  5366.57,  6368.53,  6754.31,  7001.344;
+//SERIES<2015:3 2019:4> TVR_EST@HAW = TVR_EST_HAW/1000;
+NRMCHG@HAW <2015:3 2019:4>= TVRMNS@HAW/1000;
+prt<2015:3 2019:4> TVRMNS@HAW, NRMCHG@HAW;
+
+NRMCHG@HAW <2019:1 2019:4>= NRMCHG@HAW + .0/4;   // NEED TO NOT USE LAG TO WORK WITH TVR_EST
+NRMCHG@HAW <2020:1 2020:4>= NRMCHG@HAW.1 + .249/4;   
+NRMCHG@HAW <2021:1 2021:4>= NRMCHG@HAW.1 - .072/4;   
+NRMCHG@HAW <2022:1 2022:4>= NRMCHG@HAW.1 + .365/4;   
+
+TRMS@HAW.{%VRSN} <2015:3 2022:4>= TRMS@HAW.{%VRSN} + NRMCHG@HAW;
+prt<2017:1 2022:4> NRMCHG@HAW!Q, TVRMNS@HAW, TRMS@HAW.SOL;
+
+//********* add factors *****************
+//SERIES <2016:1 2050:4> TRMS@HAW.ADD = .00 REPEAT 4 ;
+//SERIES <2020:1 2020:4> TRMS@HAW.ADD = 0.005;
+//SERIES <2050:4 2050:4> TRMS@HAW.ADD = 0.003;
+//SMOOTH TRMS@HAW.ADD = TRMS@HAW.ADD LINEAR;
+//simgp trms@haw.add;
+
+if ('{%nCovBase}'=='Y' or '{%nCovLow}'=='Y' or '{%nCoVHigh}'=='Y');
+TRMS@HAW.ADD <2016:1 2050:4>= .00 rep 4 ;
+TRMS@HAW.ADD <2020:1 2020:4>= 0.005;
+TRMS@HAW.ADD <2025:4 2025:4>= 0.0045;
+TRMS@HAW.ADD <2026:1 2026:1>= -0.001;
+TRMS@HAW.ADD <2050:4 2050:4>= 0.00;
+smooth TRMS@HAW.ADD = TRMS@HAW.ADD LINEAR;
+END;
+
+
+//************* updated all room stock assumptions except Kauai
+TRMS@KAU.{%VRSN} <1980:1 2019:4>= TRMS@KAU!Q  ;          
+TRMS@KAU.{%VRSN} <2020:1 2020:4>= TRMS@KAU.{%VRSN}[2019:4] rep *;
+
+// start Number of Room Change in 2015:3 when TVR_est starts
+NRMCHG@KAU <2015:3 2020:4>= 0.0 rep *;
+
+//SERIES<2015:3 2019:4> TVR_EST_KAU =  1062.36,  1206.64,  1340.75,  1543.47,  1705.25,  1957.00,  2185.83,  2444.99,  2631.41,  2776.59,  2921.77,  3066.96,  3163.59,  3449.18,  3190.64,  3842.51,  4297.17,  4254.648;
+//SERIES<2015:3 2019:4> TVR_EST@KAU = TVR_EST_KAU/1000;
+NRMCHG@KAU <2015:3 2019:4>= TVRMNS@KAU/1000;
+prt<2015:3 2019:4> TVRMNS@KAU, NRMCHG@KAU;
+
+NRMCHG@KAU <2019:4 2019:4>= NRMCHG@KAU + .200; // Coco Lagoon ! NEED TO NOT USE LAG TO WORK WITH TVR_EST
+NRMCHG@KAU <2020:1 2020:4>= NRMCHG@KAU.1 + .150/4; // Coco Lagoon
+
+TRMS@KAU.{%VRSN} <2015:3 2020:4>= TRMS@KAU.{%VRSN} + NRMCHG@KAU!Q ;
+prt<2017:1 2022:4> NRMCHG@KAU!Q, TVRMNS@KAU, TRMS@KAU.SOL;
+
+//set report decimal 3; set calendar collapse total; PRINT TRMS@kau.SOL, DIFF(4,TRMS@kau.SOL), NRMCHG@kau;
+//********* ROOMS *****************
+//SERIES<2050:4 2050:4> TRMS@KAU.|#VRSN| = 10.65+4.5 REPEAT *;
+//SMOOTH TRMS@KAU.|#VRSN| = TRMS@KAU.|#VRSN| LINEAR;
+
+if ('{%nCovBase}'=='Y' or '{%nCovLow}'=='Y' or '{%nCovHigh}'=='Y');
+//********* ROOMS *****************
+TRMS@KAU.{%VRSN} <2025:4 2025:4>= 13.875;
+TRMS@KAU.{%VRSN} <2050:4 2050:4>= 13.99 rep *;
+smooth TRMS@KAU.{%VRSN} = TRMS@KAU.{%VRSN} LINEAR;
+END;
+
+
+TRMS@HI.{%VRSN} <1980:1 2018:4>= TRMS@HON.sol + trms@mau.sol + trms@kau.sol + trms@haw.sol  ;          
+
+//** PERSONS PER ROOM: for periods that we have data on occupancy rates beyond our room stock history
+//INSTRUCTION: solve the model with all short-term TRMS solutions (above) but without any add factor for PPRM (below), 
+//then execute in the command line
+// forc_newpprm.cmd 
+
+//  TRUNCATE HISTORY TO ALLOW FOR TRMS_EST SAMPLE
+for string %cnty = HI, HON,HAW,MAU,KAU; /* TRANSLATE: Check that string type is ok */
+//  series<1980:1 2017:4> PPRM@#cnty|.#vrsn| = PPRM@#cnty|.Q;
+  PPRM@{%cnty}.{%vrsn} <1980:1 2015:2>= PPRM@{%cnty}!Q;
+  OCUP%@{%cnty}.{%vrsn} <1980:1 2015:2>= OCUP%@{%cnty}!Q;
+end;
+
+//series<2015:3 2019:4> TVR_EST_HI = TVR_EST_Hon + TVR_EST_HAW + TVR_EST_MAU + TVR_EST_KAU;  
+TVRMNS@HI <2015:3 2019:4>= TVRMNS@Hon + TVRMNS@HAW + TVRMNS@MAU + TVRMNS@KAU;  
+
+OCUP_diff@HI!q <2015:3 2019:4>= -6*(TVRMNS@HI/1000/TRMS@HI!Q);
+OCUP_DIFF@HI!Q <2019:1 2019:4>= OCUP_DIFF@HI!Q[-1];
+
+OCUP_diff@HON!q <2015:3 2019:4>= -9.5*(TVRMNS@HON/1000/TRMS@HON!Q);
+OCUP_DIFF@HON!Q <2019:1 2019:4>= OCUP_DIFF@HON!Q[-1];
+
+OCUP_diff@HAW!q <2015:3 2019:4>= -5.5*(TVRMNS@HAW/1000/TRMS@HAW!Q);
+OCUP_DIFF@HAW!Q <2019:1 2019:4>= OCUP_DIFF@HAW!Q[-1];
+
+OCUP_diff@MAU!q <2015:3 2019:4>= (TVRMNS@MAU/1000/TRMS@MAU!Q);
+OCUP_DIFF@MAU!Q <2019:1 2019:4>= OCUP_DIFF@MAU!Q[-1];
+
+OCUP_diff@KAU!q <2015:3 2019:4>= 3*(TVRMNS@KAU/1000/TRMS@KAU!Q);
+OCUP_DIFF@KAU!Q <2019:1 2019:4>= OCUP_DIFF@KAU!Q[-1];
+
+OCUP%@HI.{%vrsn} <2015:3 2019:4>= OCUP%@HI!Q + OCUP_DIFF@HI!Q;
+OCUP%@HON.{%vrsn} <2015:3 2019:4>= OCUP%@HON!Q + OCUP_DIFF@HON!Q;
+OCUP%@HAW.{%vrsn} <2015:3 2019:4>= OCUP%@HAW!Q + OCUP_DIFF@HAW!Q;
+OCUP%@MAU.{%vrsn} <2015:3 2019:4>= OCUP%@MAU!Q + OCUP_DIFF@MAU!Q;
+OCUP%@KAU.{%vrsn} <2015:3 2019:4>= OCUP%@KAU!Q + OCUP_DIFF@KAU!Q;
+
+
+
+prt <2015:3 2019:4> 6*(TVRMNS@HI/1000/TRMS@HI!Q), ocup%@hi.sol-ocup%@hi!q, TRMS@HI.sol, trms@hi!q;
+prt <2015:3 2019:4> 9.5*(TVRMNS@hon/1000/TRMS@hon!Q), ocup%@hon.sol-ocup%@hon!q, TRMS@hon.sol, trms@hon!q;
+
+prt <2015:3 2019:4> 5.5*(TVRMNS@haw/1000/TRMS@haw!Q), ocup%@haw.sol-ocup%@haw!q, TRMS@haw.sol, trms@haw!q;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//********* PERSONS PER ROOM *******
+
+// Oahu target is 1.7-2.3 below official
+// PPRM up,  OCUP down.  Pull PPRM down, OCUP goes Up.
+//HON                                           2016             17             
+PPRM@HON.ADD <2015:4 2017:4>=  -.2,  -.05 rep 4,  -.065 rep 4;
+PPRM@HON.ADD <2018:1 2050:4>=  .0085 rep 4, 0 rep 4, -0.007;
+PPRM@HON.ADD <2050:4 2050:4>=  -0.007 ;
+smooth PPRM@HON.ADD     = PPRM@HON.ADD LINEAR;
+
+// PPRM up,  OCUP down.  Pull PPRM down, OCUP goes Up.
+// @haw should average about 3ppt lower than official stat—  thats 36% * Average diff of 9%.
+//HAW                                                  2016             17              18
+PPRM@HAW.ADD <2015:3 2050:4>=  -.22, -.22,  -.19 rep 4,   -.25 rep 4, -.33 rep 4;
+//										19                        20  
+PPRM@HAW.ADD <2019:1 2050:4>=  -.25, -.69, -.31, -.45,   -.3, -.3, -.4;
+PPRM@HAW.ADD <2022:1 2050:4>=  -0.42;
+PPRM@HAW.ADD <2025:1 2050:4>=  -0.445;
+PPRM@HAW.ADD <2035:1 2050:4>=  -0.558;
+PPRM@HAW.ADD <2040:1 2050:4>=  -0.62;
+PPRM@HAW.ADD <2050:4 2050:4>=  -.765;
+smooth PPRM@HAW.ADD     = PPRM@HAW.ADD LINEAR;
+
+//SERIES <2018:4 2050:4> PPRM@HAW.ADD =  .0;
+//SERIES <2050:4 2050:4> PPRM@HAW.ADD = -0.52;
+//SMOOTH PPRM@HAW.ADD = PPRM@HAW.ADD LINEAR;
+
+// Not clear that Mau occupancy rate should be any different from the official stats at least within +-1%
+//MAU                                            2016             17             18             
+PPRM@MAU.ADD <2015:3 2050:4>=  -.25,  -.05 rep 4,  -.075 rep 4, -.04 rep 4;
+//MAU										19               20
+PPRM@MAU.ADD <2019:1 2050:4>=     .02, -.3, -.15, -.15, -.07 rep 4, -.06;
+PPRM@MAU.ADD <2050:4 2050:4>=  -0.06;
+smooth PPRM@MAU.ADD     = PPRM@MAU.ADD LINEAR;
+
+
+// PPRM up,  OCUP down.  Pull PPRM down, OCUP goes Up.
+// @KAU should average about 1.3ppt lower than official stat—  thats 28% * Average diff of 4.4%.
+//KAU                                      15         16               17              18             19
+PPRM@KAU.ADD <2015:3 2050:4>=  -.19, -.19, -.025 rep 4,  -.122 rep 4;
+//KAU                                      18                  19
+PPRM@KAU.ADD <2018:1 2050:4>=  .05, -.07 rep 3,  .13, -.27, -.15, -.15,  -.08 rep 4, -.06; 
+PPRM@KAU.ADD <2050:4 2050:4>=  -.06;
+smooth PPRM@KAU.ADD     = PPRM@KAU.ADD LINEAR;
+
+//SERIES <2018:1 2050:4> PPRM@KAU.ADD = .085 repeat 4, .08 repeat 4;
+//SERIES <2050:4 2050:4> PPRM@KAU.ADD =  0.065;
+//SMOOTH PPRM@KAU.ADD = PPRM@KAU.ADD LINEAR;
+//
+
+
+//********************************************************************************
+//                     VISITORS ARRIVALS (BY CRUISE AND BY AIR)
+//********************************************************************************
+//!----> international cruise ship law-- they must stay in foreign port for 2 days and spend 1/2 of total cruise   so intl cruise industry will end. 
+//!!Decision at end of this month
+//!  Feb 4---The 2,400-passenger Pride of Hawaii, with a crew of 1,000 began service in HI in June, 2006.
+//! 2400 passengers or aprox: 2400x4x12 = 115,000 passengers per year  =  1.3% of total visitors
+//! monthly loss of approx 8000 passengers
+//!  MAY 11, 2008--- loose pride of Aloha  with roughly the same size crew and passcount.
+//!  total loss aprox 16000 per month or around 50K per qtr or near 200K per year
+
+
+VISCRAIR@HI.ADD <2012:4 2013:4>=   -8;
+VISCRAIR@HI.ADD <2014:4 2014:4>=   -7.5;
+VISCRAIR@HI.ADD <2015:4 2015:4>=   -7;
+VISCRAIR@HI.ADD <2020:4 2020:4>=   -7;
+VISCRAIR@HI.ADD <2050:4 2050:4>=   -7;
+smooth VISCRAIR@HI.ADD = VISCRAIR@HI.ADD LINEAR;
+
+VLOSCRAIR@HI!Q <1990:4 2050:4>= TOUR:VLOSCRAIR@HI;  //!! need to respecify, pop 12/07
+VLOSCRAIR@HI!Q <2050:4 2050:4>= 1.05*TOUR:VLOSCRAIR@HI[2007:4];
+smooth VLOSCRAIR@HI!Q = VLOSCRAIR@HI!Q LINEAR;
+
+//                       
+//**************** U.S. --- 2020Q1 pre covid19                 
+//                                       2020             21
+VISUS@HI.ADD <2020:1 2050:4>=   85, 55, 69, 45,  80, 70, 60,  60;
+VISUS@HI.ADD <2025:4 2025:4>=   60;
+VISUS@HI.ADD <2030:4 2030:4>=   55;
+VISUS@HI.ADD <2050:4 2050:4>=   45;
+smooth VISUS@HI.ADD = VISUS@HI.ADD LINEAR;
+
+//*************** JAPAN                20Q1            21Q1
+//
+VISJP@HI.ADD <2020:1 2050:4>= 45, 56, 42, 54, 52, 53, 54; 
+VISJP@HI.ADD <2025:4 2025:4>= 56;
+VISJP@HI.ADD <2032:4 2032:4>= 56; 
+VISJP@HI.ADD <2050:4 2050:4>= 58   ;
+smooth VISJP@HI.ADD = VISJP@HI.ADD LINEAR;
+
+//**************** NON US NON JP VISITOR 2010
+//                                       2020
+VISRES@HI.ADD <2020:1 2050:4>=  -10, 9, 6;
+VISRES@HI.ADD <2050:4 2050:4>= 6 ;
+smooth VISRES@HI.ADD = VISRES@HI.ADD LINEAR;
+
+if ('{%nCov20Q1}'=='N');
+     close jpsol;
+     open jpsol_pre_nCoV;
+End; // end if nCov20Q1=N
+if ('{%nCov20Q1}'=='Y');
+// assume no chinese visitors Feb-May = 8K per month, slow recover for Q3-2021Q3. 
+VISRES2@HI.COR <2020:1 2050:4>=  -14, -12, 12, 9,   1.5, 0, 0; 
+VISRES@HI.ADD <2020:1 2050:4>=  VISRES@HI.ADD + VISRES2@HI.COR;
+END;  // end if nCov20Q1 = Y
+
+
+if ('{%nCovBase}'=='Y');     // BASELINE
+//   									2020                   21                     22              23             24
+visus@HI.pan <2020:1 2050:4>=  -350, -1510, 460, 540,  195,  -550, 110, 85,   45, 25, 15, 10, -10 rep 4, -25 rep 4, -20 rep 4; 
+VISUS@HI.PAN <2050:4 2050:4>= -5;
+smooth VISUS@HI.PAN = VISUS@HI.PAN LINEAR;
+visus@HI.ADD <2020:1 2050:4>=  visus@HI.ADD + visus@HI.pan;
+//   									2020                  21                  22                 23             24            25
+VISJP@HI.pan <2020:1 2050:4>=  -95, -345, -30, 0,     80, -25, 75, 30,  -25, -30, -35, -35, -35 rep 4,  -35 rep 4, -30 rep 4, -20 rep 4, -15; 
+VISJP@HI.PAN <2050:4 2050:4>= -5;
+smooth VISJP@HI.PAN = VISJP@HI.PAN LINEAR;
+VISJP@HI.ADD <2020:1 2050:4>=  VISJP@HI.ADD + VISJP@HI.pan;
+//   									2020                  21                22            23         24      
+VISRES@HI.pan <2020:1 2050:4>= -48, -350, 50,  120,   55, 25, 15, 10,   -5 rep 4, -2 rep 4, 0 rep 4, 2 rep 4; 
+VISRES@HI.PAN <2050:4 2050:4>= 5;
+smooth VISRES@HI.PAN = VISRES@HI.PAN LINEAR;
+VISRES@HI.ADD <2020:1 2050:4>=  VISRES@HI.ADD + VISRES@HI.pan;
+END; // end if nCovBase = Y
+
+if ('{%nCovHigh}'=='Y');     // HIGH--- Q3 42%,  Q4 72%
+//   									2020                    21                     22              23            24            25
+visus@HI.pan <2020:1 2050:4>=  -350, -1510, 770, 840,   180,  -700, 155, 80,   40, 30, 15, 5, -15 rep 4, -20 rep 4, -20 rep 4, -15; 
+VISUS@HI.PAN <2050:4 2050:4>=  0;
+smooth VISUS@HI.PAN = VISUS@HI.PAN LINEAR;
+visus@HI.ADD <2020:1 2050:4>=  visus@HI.ADD + visus@HI.pan;
+//   									2020                    21                     22                   23              24
+VISJP@HI.pan <2020:1 2050:4>=  -95, -345,  40,   0,     110,  -60, 110, 15,    -25, -25, -30, -30,  -30 rep 4,  -30 rep 4, -20 rep 4, -15; 
+VISJP@HI.PAN <2050:4 2050:4>= 10;
+smooth VISJP@HI.PAN = VISJP@HI.PAN LINEAR;
+VISJP@HI.ADD <2020:1 2050:4>=  VISJP@HI.ADD + VISJP@HI.pan;
+//   									2020                    21                22          23          24
+VISRES@HI.pan <2020:1 2050:4>= -48, -380, 110,  190,    45, 30, 20, 10,   2 rep 4, 2 rep 4, 0 rep 4; 
+VISRES@HI.PAN <2050:4 2050:4>= 8;
+smooth VISRES@HI.PAN = VISRES@HI.PAN LINEAR;
+VISRES@HI.ADD <2020:1 2050:4>=  VISRES@HI.ADD + VISRES@HI.pan;
+END; // end if nCovHigh = Y
+
+if ('{%nCovLOW}'=='Y');      // LOW SCENARIO
+//   									2020        Q3   Q4    21                     22                23            24           25
+visus@HI.pan <2020:1 2050:4>=  -350, -1510, -10, 460,  265,  -310, -30, 70,   25, 15, 10, 0,   -25 rep 4, -35 rep 4, -30 rep 4; 
+VISUS@HI.PAN <2050:4 2050:4>= -10;
+smooth VISUS@HI.PAN = VISUS@HI.PAN LINEAR;
+visus@HI.ADD <2020:1 2050:4>=  visus@HI.ADD + visus@HI.pan;
+
+//   									2020        Q3    Q4     21                    22                  23             24  
+VISJP@HI.pan <2020:1 2050:4>=  -95, -335,  -90,  -45,    40,  15, 40,  35,    -25, -30, -40, -45,  -45 rep 4,  -40 rep 4, -35 rep 4, -30; 
+VISJP@HI.PAN <2050:4 2050:4>= -5;
+smooth VISJP@HI.PAN = VISJP@HI.PAN LINEAR;
+VISJP@HI.ADD <2020:1 2050:4>=  VISJP@HI.ADD + VISJP@HI.pan;
+
+//   									2020       Q3   Q4     21                     22         23            24
+VISRES@HI.pan <2020:1 2050:4>= -48, -375,  -35, 60,   95, 40, 30, 10,       -8 rep 4, -6 rep 4, -5 rep 4, 0 rep 4; 
+VISRES@HI.PAN <2050:4 2050:4>= 0;
+smooth VISRES@HI.PAN = VISRES@HI.PAN LINEAR;
+VISRES@HI.ADD <2020:1 2050:4>=  VISRES@HI.ADD + VISRES@HI.pan;
+END; // end if nCovLOW = Y
+
+//********************************************************************************
+//                      ROOM PRICE
+//********************************************************************************
+// Coronoa SERIES <2020:1 2050:4> PRM@HI.ADD =  3, 2, 1, 0;
+PRM@HI.ADD <2020:1 2050:4>=  -2, -1.8, -1.6, -1.1;
+PRM@HI.ADD <2023:1 2023:1>= -.6;
+PRM@HI.ADD <2030:1 2030:1>= -.6;
+PRM@HI.ADD <2050:4 2050:4>= 0;
+smooth PRM@HI.ADD = PRM@HI.ADD linear;
+
+PRM@HON.ADD <2019:4 2050:4>=  -.5, -1;
+PRM@HON.ADD <2030:1 2030:1>= -1;
+PRM@HON.ADD <2050:4 2050:4>= -1;
+smooth PRM@HON.ADD = PRM@HON.ADD linear;
+//                                      2020:1                     
+VEXP@HI.ADD <2020:1 2050:4>=   190 rep 4, 175 rep 4, 190 rep 4, 210;
+VEXP@HI.ADD <2050:4 2050:4>= 600;
+smooth VEXP@HI.ADD = VEXP@HI.ADD linear;
+
+if ('{%nCovBase}'=='Y');       //BASE  
+open qsol20Q1_I2 as old;
+work:prm@hi.sol = old:prm@hi.oldsol;
+close old;
+//    	 							 2020                      21                       22              23           24
+vexp@HI.pan <2020:1 2050:4>=  0, -155, -1000, -1350,  -850, -350, -100, -100,  -100 rep 4,  -70 rep 4, -30 rep 4, 0 rep 4, 10 rep 4, 15 rep *; 
+vexp@HI.ADD <2020:1 2050:4>=  vexp@HI.ADD + vexp@HI.pan;
+END; // end if nCovBase = Y
+
+if ('{%nCovHigh}'=='Y');       //High  
+open qsol20Q1_I2 as old;
+work:prm@hi.sol = old:prm@hi.oldsol;
+close old;
+//    	 							 2020                      21                       22
+vexp@HI.pan <2020:1 2050:4>=  0, -155, -1200, -1450,  -950, -250, -100, -100,  -90 rep 4,  -60 rep 4, -30 rep *; 
+vexp@HI.ADD <2020:1 2050:4>=  vexp@HI.ADD + vexp@HI.pan;
+END; // end if nCovHigh = Y
+
+if ('{%nCovLOW}'=='Y');         // LOW
+open qsol20Q1_I2 as old;
+work:prm@hi.sol = old:prm@hi.oldsol;
+close old;
+//    	 							 2020                    21                       22
+vexp@HI.pan <2020:1 2050:4>=  0, -155, -450, -850,  -1950, -350, -250, -250,  -200 rep 4,  -100 rep 4, -100 rep *; 
+vexp@HI.ADD <2020:1 2050:4>=  vexp@HI.ADD + vexp@HI.pan;
+END; // end if nCovLOW = Y
+
+
+//********* US SHARES ***************
+//HON 			                       20Q1
+SH_US@HON.ADD <2020:1 2050:4>= -.001, -.001, -.001, -0.0005, 0.0004 ;
+SH_US@HON.ADD <2050:4 2050:4>= 0.0005;
+smooth SH_US@HON.ADD = SH_US@HON.ADD LINEAR;
+
+
+//MAU                                    2020
+SH_US@MAU.ADD <2020:1 2050:4>= -.001, .007, .00, .00, -.0005, -.00002 rep *;
+
+//
+//HAW                                    2020Q1                   2021       
+SH_US@HAW.ADD <2020:1 2050:4>=  -.0055, .007, -.001, -.001, -.001, .0001;
+SH_US@HAW.ADD <2025:4 2025:4>=  0.0001;
+SH_US@HAW.ADD <2040:4 2050:4>=  0.00004;
+SH_US@HAW.ADD <2050:4 2050:4>=  0.0001;
+smooth SH_US@HAW.ADD = SH_US@HAW.ADD LINEAR;
+
+
+// KAU                                    2020                           2021                           
+SH_US@KAU.ADD <2020:1 2050:4>=  -.0105, -.0095, -.0095, -.0096, -.0097, -.0098, -.0097, -.0096, -.0094  rep *; 
+
+//********* JP SHARES ***************
+//HON                                    20
+SH_JP@HON.ADD <2020:1 2050:4>= .005, .005, .00, .00;
+SH_JP@HON.ADD <2050:4 2050:4>= .00;
+smooth SH_JP@HON.ADD = SH_JP@HON.ADD linear;
+
+
+//MAU                                    19
+SH_JP@MAU.ADD <2019:1 2050:4>=   .0008, -.0008, -.0009, -.001;
+SH_JP@MAU.ADD <2050:4 2050:4>= -0.0007;
+smooth SH_JP@MAU.ADD = SH_JP@MAU.ADD linear;
+//  75% increase in JP lift for year
+//  146% increase in lift in Q1
+//  State lift increases from Q1 to Q4: -1.3	1.7	1.5	6.0
+//  M1 arrivals only increased 7.5%
+//HAW                                     2020
+SH_JP@HAW.ADD <2020:1 2050:4>=  -.035, -.035, -.035 rep 4 ;
+SH_JP@HAW.ADD <2030:4 2030:4>=  -.026;
+SH_JP@HAW.ADD <2050:4 2050:4>=  -.005;
+smooth SH_JP@HAW.ADD = SH_JP@HAW.ADD LINEAR;
+
+//KAU                                      2020
+SH_JP@KAU.ADD <2020:1 2050:4>=  -.0027,  -.0026, -.0028, -.0027, -.0026;
+SH_JP@KAU.ADD <2050:4 2050:4>= -0.0015;
+smooth SH_JP@KAU.ADD = SH_JP@KAU.ADD LINEAR;
+
+
+//********* RES SHARES ***************
+//HON                                    
+SH_RES@HON.ADD <2019:1 2050:4>= 0.01, -.001 rep 4, .00;
+SH_RES@HON.ADD <2050:4 2050:4>= -0.08;
+smooth SH_RES@HON.ADD = SH_RES@HON.ADD LINEAR;
+
+//MAU
+SH_RES@MAU.ADD <2020:1 2050:4>=  -.011 rep 4, -.01  rep *;
+
+//HAW
+SH_RES@HAW.ADD <2019:4 2050:4>=  .001, .001;
+SH_RES@HAW.ADD <2050:4 2050:4>=  0.000;
+smooth SH_RES@HAW.ADD = SH_RES@HAW.ADD LINEAR;
+
+//KAU                                      20Q1             
+SH_RES@KAU.ADD <2020:1 2050:4>=  -0.01, -0.011, -.012;
+SH_RES@KAU.ADD <2050:4 2050:4>=  -.01 rep *;
+smooth SH_RES@KAU.ADD = SH_RES@KAU.ADD LINEAR;
+
+
+//********* LENGTH OF STAY *******
+
+if ('{%nCovBase}'=='Y');      //  BASELINE 
+// HON	 							     2020               21             22
+VLOSUS@HON.ADD <2020:1 2050:4>=  -.05, 19, 0, -3,  -7, -3, 1, 1,   .7, .1, 0, -.03;
+VLOSUS@HON.ADD <2050:1 2050:4>=  -.02 rep *;
+smooth VLOSUS@HON.ADD = VLOSUS@HON.ADD LINEAR;
+
+//                                        18Q3           
+VLOSJP@HON.ADD <2018:4 2050:4>= .35, .35, .3;
+VLOSJP@HON.ADD <2020:4 2020:4>= 0.3;
+VLOSJP@HON.ADD <2023:4 2023:4>= 0.29;
+VLOSJP@HON.ADD <2050:4 2050:4>= 0.28 ;
+smooth VLOSJP@HON.ADD = VLOSJP@HON.ADD LINEAR;
+
+VLOSRES@HON.ADD <2018:4 2019:4>= -0.3 ;
+VLOSRES@HON.ADD <2050:4 2050:4>= -0.3 ;
+smooth VLOSRES@HON.ADD = VLOSRES@HON.ADD LINEAR;
+
+//********* MAU LENGTH OF STAY *******
+//                                       2020              2021
+VLOSUS@MAU.ADD <2020:1 2050:4>= .36, 10, 8, 0,   -3, -7, -4, -3, -.46, .44;
+VLOSUS@MAU.ADD <2023:4 2023:4>=  .44;
+VLOSUS@MAU.ADD <2025:4 2025:4>=  .44;
+VLOSUS@MAU.ADD <2050:1 2050:4>=  0.4 rep *;
+smooth VLOSUS@MAU.ADD = VLOSUS@MAU.ADD LINEAR;
+
+VLOSJP@MAU.ADD <2019:1 2050:4>= .11 rep 4 ;
+VLOSJP@MAU.ADD <2050:4 2050:4>=  0.08 ;
+smooth VLOSJP@MAU.ADD = VLOSJP@MAU.ADD LINEAR;
+
+VLOSRES@MAU.ADD <2018:1 2050:4>=  .1;
+VLOSRES@MAU.ADD <2050:4 2050:4>=  0.1;
+smooth VLOSRES@MAU.ADD = VLOSRES@MAU.ADD LINEAR;
+
+//********* HAW LENGTH OF STAY *******
+//                                       2020              2021
+VLOSUS@HAW.ADD <2020:1 2050:4>= .9, 11, 8, 2,    -4, -4, -2, 0,   .85;
+VLOSUS@HAW.ADD <2022:1 2050:4>= .85 rep *;
+smooth VLOSUS@HAW.ADD = VLOSUS@HAW.ADD LINEAR;
+
+VLOSJP@HAW.ADD <2020:1 2050:4>=  .35, .33, .3 rep  *;
+
+VLOSRES@HAW.ADD <2019:3 2050:4>=  -.3;
+VLOSRES@HAW.ADD <2050:4 2050:4>=  .1 ;
+smooth VLOSRES@HAW.ADD = VLOSRES@HAW.ADD LINEAR;
+
+//********* KAU LENGTH OF STAY *******
+// 										20Q1   	        2021               22
+VLOSUS@KAU.ADD <2020:1 2050:4>= .48, 9, 8, -3,   -9, -7, -3, -1.5, .5, 2, 1.5, 1, 0.46, .44;
+VLOSUS@kau.ADD <2050:4 2050:4>= 0.4;
+smooth VLOSUS@KAU.ADD = VLOSUS@KAU.ADD LINEAR;
+
+//KAU
+VLOSJP@KAU.ADD <2018:1 2050:4>=  .18, .16 rep *;
+
+VLOSRES@KAU.ADD <2019:4 2050:4>= -.03 rep *;
+
+END; // end if nCovBase = Y
+
+
+//goto skiplos;
+//IF ('#nCovBase'=='Y' or '#nCovLow'=='Y' or '#nCoVHigh'=='Y');
+//!simgp visus@hi.q;
+//open QSOL20Q1.BNK as old;
+//SERIES <1990:1 2050:4> VLOSUS@HON.sol =  old:vlosus@hon.oldsol;
+//SERIES <1990:1 2050:4> VLOSJP@HON.sol =  old:vlosJP@hon.oldsol;
+//SERIES <1990:1 2050:4> VLOSRES@HON.sol =  old:vlosRES@hon.oldsol;
+//!simgp  old:vlosus@hon.oldsol, work:vlosus@hon.sol;
+//
+//SERIES <1990:1 2050:4> VLOSUS@HAW.sol =  old:vlosus@HAW.oldsol;
+//SERIES <1990:1 2050:4> VLOSJP@HAW.sol =  old:vlosJP@HAW.oldsol;
+//SERIES <1990:1 2050:4> VLOSRES@HAW.sol =  old:vlosRES@HAW.oldsol;
+//!simgp  old:vlosus@haw.oldsol, work:vlosus@haw.sol;
+//
+//SERIES <1990:1 2050:4> VLOSUS@MAU.sol =  old:vlosus@MAU.oldsol;
+//SERIES <1990:1 2050:4> VLOSJP@MAU.sol =  old:vlosJP@MAU.oldsol;
+//SERIES <1990:1 2050:4> VLOSRES@MAU.sol =  old:vlosRES@MAU.oldsol;
+//!simgp  old:vlosus@mau.oldsol, work:vlosus@mau.sol;
+//
+//SERIES <1990:1 2050:4> VLOSUS@KAU.sol =  old:vlosus@KAU.oldsol;
+//SERIES <1990:1 2050:4> VLOSJP@KAU.sol =  old:vlosJP@KAU.oldsol;
+//SERIES <1990:1 2050:4> VLOSRES@KAU.sol =  old:vlosRES@KAU.oldsol;
+//!simgp  old:vlosus@kau.oldsol, work:vlosus@kau.sol;
+//
+//close old;
+//END; ! end if nCovBase = Y, or LOW or HIGH
+//target skiplos;
+
+
+//************************************************
+//!!                 POPULATION 
+//************************************************
+//*** PROBLEM: data on NR are avail for 17-18, but not for NRM, NRCNM and NRCMD 
+//*** SUGGESTION: 4 steps of add factoring population ***
+//*** Follow the suggestion step-by-step.  when working on step 1, comment out add factors in all other steps
+//*** Note: step 1 to 3 don't require often changes.
+
+
+//**STEP 1: getting NRM@HI and NRCMD@HI that you want **
+//Note: if you don't change add factors between 08Q3 and 09Q2, you can skip step 2 and 3.
+//  see https://www.dmdc.osd.mil/appj/dwp/dwp_reports.jsp  for reports that may help predict direction of change
+//
+//                                         18Q3        19                        20
+NRM@HI.ADD <2018:3 2050:4>=       .15, .18,  .12, .0, -.01 rep 2,  .005 rep 4, .001 rep 4, .003 rep *;
+
+// ARMY cut simulations
+//series <2016:1 2050:4> NRMSEPA.add =   -.6 REPEAT 4, -.4 REPEAT 4, -.1 REPEAT 4, .1 repeat 4, .01 repeat *;
+//series NRM@HI.ADD = NRM@HI.ADD + NRMSEPA.ADD;
+//                                      2017    18                    19
+SH_MD@HI.ADD <2017:4 2050:4>=  .006, .01 .012, .012, .009,  .008 rep 4, .008 rep *;
+
+//!!!!!!!
+//!! compare births and deaths — civilian  nbir@hi.a,  ndea@hi.a
+//!! to non-military civilian births and deaths.  
+//!! print<2012 2019> nbircnm@hi.a%, nbircnm@hi.sola%, nbir@hi.a%;
+//!! print<2012 2019> ndeacnm@hi.a%, ndeacnm@hi.sola%, ndea@hi.a%;
+
+//!! look at US population projections from census!!!!!
+//!! https://www.census.gov/data/tables/2017/demo/popproj/2017-summary-tables.html
+
+
+//**STEP 2: add factoring nbirrcnm@hi and ndearcnm@hi between 16Q3 and 18Q3
+// print
+// set per 2014 2019; 
+// RUN pop nowcast in evdev 
+// print nbircnm@hi.sola%, nbir@hi.a%, pchya(ndearcnm@hi.sola), pchya(ndear@hi.a), nmigrcnm@hi.sola, nmigrcnm@hi.a, nmigr@hi.a, nr@hi.sola%, nr@hi.a%, nrm@hi.a%, nrcmd@hi.a%;
+//                                        2016:4   2017                  2018            2019
+NBIRRCNM@HI.ADD <2016:4 2050:4>= -.01,   -.0285 rep 3 -.02, -.018 rep 4, -.01 rep 4, -.01, -.01, -.01, -.007;
+NBIRRCNM@HI.ADD <2050:4 2050:4>= -0.01;
+smooth NBIRRCNM@HI.ADD = NBIRRCNM@HI.ADD LINEAR;
+//
+NDEARCNM@HI.ADD <2016:4 2050:4>= .008, .019 rep 4, -.0045 rep 4, .0045 rep 4, .0025;
+NDEARCNM@HI.ADD <2035:4 2035:4>= .006;
+NDEARCNM@HI.ADD <2050:4 2050:4>= .006;
+smooth NDEARCNM@HI.ADD = NDEARCNM@HI.ADD LINEAR; 
+
+prt<2016 2018> census:nr@hon!a, nrcnm@hon.sola+nrcmd@hi.sola+nrm@hi.sola, nrcnm@hon!a, nrcnm@hon.sola, nrcnm@hi!a-(nr@haw!a+nr@mau!a+nr@kau!a), nrcnm@hi!a, nrcnm@hi.sola ;
+
+//**STEP 3: getting the solution for NMIGCNM between 2016 AND 2017 so that the aggregate of components equal to the reported total in 2016 & 2017
+//INTRUCTION: solve the model with add factors in step 1 and 2.  Then, run the following commands:
+
+//set freq q; series<2017 2019> err = (nrcnm@hi.sol[-1]+nbircnm@hi.sol-ndeacnm@hi.sol+nmigcnm@hi.sol)-nrcnm@hi.q; series<2017 2019> newnmigrcnm@hi.sol = nmigrcnm@hi.sol - err/(nrcnm@hi.sol-err)*1000;  print<2017 2019> err, nmigrcnm@hi.sol, newnmigrcnm@hi.sol;
+//!!!!! ------  Use value in the last column as the solution for NMIGRCNM@HI 
+
+NMIGRCNM@HI.SOL <1980:1 2018:3>= NMIGRCNM@HI!Q; //  2016                  2017                     2018
+NMIGRCNM@HI.SOL <2016:4 2018:3>=                   -.17,                -.12, -.07, -.02, -1.3,  -1.29, -1.28, -1.27;
+//simgp nmigrcnm@hi.sol, nmigrcnm@hi.q;
+//print nmigrcnm@hi.sol, nmigrcnm@hi.q;
+
+//**STEP 4: add factoring other components of population (except NRM and NRCMD, which are done in step 1).
+//                                        2018:4  2019                    20             21              22
+//series <2018:4 2050:4> NMIGRCNM@HI.ADD =  -.3,   -.1, -.1, -.08, -.07,   -.03 repeat 4, -.02 repeat 4, -.02 repeat 4, -.02 repeat 4, -.0175 repeat *;
+//Above commented out due to new scenarios
+
+//!                                           18Q4    2019            2020  
+SH_NRCNM@MAU.ADD <2018:4 2050:4>=  -.00004, -.00005 rep 4, -.00008 rep 4, -.00013;
+SH_NRCNM@MAU.ADD <2050:4 2050:4>= -0.00016;
+smooth SH_NRCNM@MAU.ADD = SH_NRCNM@MAU.ADD linear;
+
+//!                                         2018Q4    2019             2020              2021
+SH_NRCNM@HAW.ADD <2018:4 2050:4>=  -.0002, -.00038 rep 4, -.00042 rep 4, -.00046, -.00049, -.0005, -.0005, -.00044 ;
+SH_NRCNM@HAW.ADD <2050:4 2050:4>= -0.00035;
+smooth SH_NRCNM@HAW.ADD = SH_NRCNM@HAW.ADD linear;
+
+if ('{%nCovbase}'=='Y' or '{%nCovHigh}'=='Y');  //  baseNR
+//                                        2016:4   2017                  2018            2019
+NBIRRCNM@HI.ADD <2016:4 2050:4>= -.01,   -.0285 rep 3 -.02, -.018 rep 4, -.01 rep 4, -.01, -.03, -.02, -.015;
+NBIRRCNM@HI.ADD <2050:4 2050:4>= 0.0;
+smooth NBIRRCNM@HI.ADD = NBIRRCNM@HI.ADD LINEAR;
+//**STEP 4: add factoring other components of population (except NRM and NRCMD, which are done in step 1).
+//                                        2018:4  2019                    20                      21                   22            23            24
+NMIGRCNM@HI.ADD <2018:4 2050:4>=  -.3,   -.1, -.1, -.08, -.07,   -.03, -.1, -.3, -.4,   -.4, -.2, .9, .0,    -.4 rep 4, -.1 rep 4, -.0175 rep 8, .05 rep 4, .12 rep 4, .05 rep 8, -.01 rep 8, 0 ;
+//series <2030:4 2030:4> NMIGRCNM@HI.ADD = 0.2, 0;
+NMIGRCNM@HI.ADD <2050:4 2050:4>= 0.0;
+smooth NMIGRCNM@HI.ADD = NMIGRCNM@HI.ADD LINEAR;
+
+
+//!                                         2018Q4    2019             2020              2021
+SH_NRCNM@HAW.ADD <2018:4 2050:4>=  -.0002, -.0004 rep 4, -.00047 rep 4, -.00046, -.00049, -.0005, -.0005, -.00044 ;
+SH_NRCNM@HAW.ADD <2050:4 2050:4>= -0.00035;
+smooth SH_NRCNM@HAW.ADD = SH_NRCNM@HAW.ADD linear;
+End; // end 
+
+if ('{%nCovLow}'=='Y');
+//                                        2016:4   2017                  2018            2019           2020
+NBIRRCNM@HI.ADD <2016:4 2050:4>= -.01,   -.0285 rep 3 -.02, -.018 rep 4, -.01 rep 4, -.01, -.03, -.02, -.015;
+NBIRRCNM@HI.ADD <2050:4 2050:4>= 0.0;
+smooth NBIRRCNM@HI.ADD = NBIRRCNM@HI.ADD LINEAR;
+//**STEP 4: add factoring other components of population (except NRM and NRCMD, which are done in step 1).
+//                                        2018:4  2019                    20                        21                    22
+NMIGRCNM@HI.ADD <2018:4 2050:4>=  -.3,   -.1, -.1, -.08, -.07,   -.03, -.15, -1.5, -.7,   -.8, -1.2, 2.5, 1.5,   -.6 rep 4, -.2 rep 4, -.1 rep 4, .12 rep 4, .05 rep 8, -.01 rep 8, 0;
+NMIGRCNM@HI.ADD <2050:4 2050:4>= 0.0;
+smooth NMIGRCNM@HI.ADD = NMIGRCNM@HI.ADD LINEAR;
+
+//!                                         2018Q4    2019             2020              2021
+SH_NRCNM@HAW.ADD <2018:4 2050:4>=  -.0002, -.0004 rep 4, -.00047 rep 4, -.00046, -.00049, -.0005, -.0005, -.00044 ;
+SH_NRCNM@HAW.ADD <2050:4 2050:4>= -0.00035;
+smooth SH_NRCNM@HAW.ADD = SH_NRCNM@HAW.ADD linear;
+End; // end 
+
+//!                                         2018Q4
+SH_NRCNM@KAU.ADD <2018:4 2050:4>=  .000072;
+SH_NRCNM@KAU.ADD <2050:4 2050:4>= -0.000001;
+smooth SH_NRCNM@KAU.ADD = SH_NRCNM@KAU.ADD linear;
+
+//************************************************
+//                LABOR FORCE
+//************************************************
+//                                    2020              21           
+LF@HI.ADD <2020:1 2050:4>= -.1, -.1, -.3, -.5, 0 rep 4, .13 rep 4, .14 rep *;
+LF@NBI.ADD <2020:1 2050:4>= 0 rep  4,    .15 rep 4, .15 rep *;
+
+// ############   HIGH
+if ('{%nCovHigh}'=='Y');  
+//          				             20Q2           21             22           23            24            25
+LF@HI.ADD <2020:2 2050:4>=  -3, -2, -1,    .85 rep 4,   .7 rep 4,  0 rep 4, .15 rep 4, .1 rep *;   
+//2.5 repeat 4;
+//  -4 repeat 4,  8 repeat 4,  -15 repeat 4, .5 repeat *;
+LF@NBI.ADD <2020:2 2050:4>= -2, -1, -1,    -.2 rep 4,  .65 rep 4,  .45 rep 4, .15 rep *;
+
+E_NF@HAW.ADD <2021:1 2050:4>= .04 rep *;
+E_NF@KAU.ADD <2021:1 2050:4>= .01 rep *;
+
+END; // end if nCovHIGH = Y
+
+// ############   LFLOW
+if ('{%nCovLow}'=='Y');  
+//  LF NBI UP ---> LF HON DOWN and UR Down
+//  LF UP  --- UR UP
+//  LF down  --- UR down
+//          				             20Q2          21             22             23            24            25
+//SERIES <2020:2 2050:4> LF@HI.ADD =  -3, -10, 5,   4, -2, -2, -1,  -1 repeat 4,  0 repeat 4,  .15 repeat 4, .1 repeat *;   
+LF@HI.ADD <2020:2 2050:4>=  -3, -14, 5,    4, 3, 2, 1,   0 rep 4,     0 rep 4,  .1 rep 4, .1 rep 4, .05 rep 4, .01 rep *;   
+LF@NBI.ADD <2020:2 2050:4>= -2, -7,  -3,   0, 1, 1, .7,  -.35 rep 4,  .3 rep 4, .2 rep 4, .1 rep 4, .04 rep 4, .01 rep 4, .0 rep 4, .01 rep *;
+//SERIES <2020:2 2050:4> LF@NBI.ADD = -2, -7,  -3,   0, 1, 1, .7,  -.35 repeat 4,  .3 repeat 4, .3 repeat *;
+
+E_NF@HAW.ADD <2021:1 2050:4>= .02 rep 5, .015 rep *;
+E_NF@KAU.ADD <2021:1 2050:4>= .01 rep 5, .008 rep *;
+END; // end if nCovLOW = Y
+
+// ############   LFbase
+if ('{%nCovBase}'=='Y');  
+//          				             20Q2           21             22           23            24            25
+LF@HI.ADD <2020:2 2050:4>=  -3, -2, -1,    .85 rep 4,   .7 rep 4,  0 rep 4, .15 rep 4, .1 rep 4 .05 rep 4, .01 rep *;   
+LF@NBI.ADD <2020:2 2050:4>= -2, -1, -1,    -.2 rep 4,  .65 rep 4,  .45 rep 4, .15 rep 4, .07 rep 4, .01 rep 4, -.01 rep 4, -.02 rep 4, -.04 rep *;
+
+E_NF@HAW.ADD <2021:1 2050:4>= .02 rep 5, .015 rep *;
+E_NF@KAU.ADD <2021:1 2050:4>= .01 rep 5, .008 rep *;
+
+END; // end if nCovBase = Y
+
+
+// 3/14/20 — EMPLOYMENT IS NOW IDENTITY/Behavioral FORCED TO GROW AT SAME RATE AS E_NF
+
+//************************************************
+//                      CPI
+//************************************************
+
+//                                        2018
+PCHSSH@HON.ADD <2019:4 2049:4>= -2, -2.1 rep 4, -2.2 ;
+PCHSSH@HON.ADD <2050:4 2050:4>= -.8;
+smooth PCHSSH@hon.add = PCHSSH@hon.add linear;
+
+PCFBFD@HON.ADD <2017:1 2049:4>= .9 rep 2, 0 rep 2, 0 rep *;
+
+PCEN@HON.ADD <2020:1 2049:4>=   0 rep 4, -.3 rep *;
+
+//                                      2019      20              21
+CPI@HON.ADD <2019:4 2050:4>=  -1.2,      -.35 rep 4,  -.5 rep 4, -.4 rep 8, -.3 rep  * ;
+
+// ##################  BASE
+if ('{%nCovBase}'=='Y');  
+//                                         20           21                       22
+PCHSSH@HON.ADD <2020:2 2050:4>=  -5, 0, 15,   -1.5, -8.5, -7.5, -4.3,  -1.5, -3, -4.5, -1, -1.5 , -1;
+PCHSSH@HON.ADD <2050:4 2050:4>=   -.4;
+smooth PCHSSH@hon.add = PCHSSH@hon.add linear;
+
+//                                         20             21              22
+CPI@HON.ADD <2020:2 2050:4>=     -1.4 rep 3,  -1.3 rep 4,  -1.4 rep 4, -1.5 rep  4, -1.2 rep 4, -1 rep * ;
+
+open qsol20Q1;
+PCFBFD@HON.SOL = PCFBFD@HON.OLDSOL;
+close QSOL20Q1;
+END; // end if nCovBase = Y
+
+// ##################  HIGH LOW
+if ('{%nCovLow}'=='Y' or '{%nCovHigh}'=='Y');  
+//                                         20           21                     22
+PCHSSH@HON.ADD <2020:2 2050:4>=  -5, 0, 15,   -1.5, -8.5, -7, -4,    -1, -3, -4.5, -1, -1.5 , -1;
+PCHSSH@HON.ADD <2050:4 2050:4>=   -.4;
+smooth PCHSSH@hon.add = PCHSSH@hon.add linear;
+
+//                                         20             21              22
+CPI@HON.ADD <2020:2 2050:4>=     -1.4 rep 3,  -1.3 rep 4,  -1.4 rep 4, -1.5 rep  4, -1.2 rep 4, -1 rep * ;
+
+open qsol20Q1;
+PCFBFD@HON.SOL = PCFBFD@HON.OLDSOL;
+close QSOL20Q1;
+END; // end if nCovBase = Y
+
+
+
+
+//************************************************
+//                 JOBS and STATE INCOME
+//************************************************
+//!! BEGIN WITH TOURISM RELATED AND PROGRESS TO AGG. DEMAND DRIVEN
+
+
+//***************    ACCOMODATIONS AND FOOD SERVICES    ************************ 	DON'T TOUCH
+//                                       19Q1                 20             21          
+EAF@HI.ADD <2019:1 2050:4>=    -.3, -.73, -.8, -1,  -1 rep 4;
+EAF@HI.ADD <2050:4 2050:4>= -.6;
+smooth EAF@HI.ADD = EAF@HI.ADD LINEAR;
+//                                      19                  20                    21
+EAF@HON.ADD <2019:1 2050:4>=  .25, .25, .25, .15,  .15, .15, .15, .2,  .22 rep 4, .25;
+EAF@HON.ADD <2050:4 2050:4>= .3;
+smooth EAF@HON.ADD = EAF@HON.ADD LINEAR;
+//                                      19Q4 
+YLAF_R@HI.ADD <2019:4 2050:4>=  -4, -6, -6, -5, -4;
+YLAF_R@HI.ADD <2050:4 2050:4>= -5;
+smooth YLAF_R@HI.ADD = YLAF_R@HI.ADD LINEAR;
+
+// ############  EAFBASE
+if ('{%nCovBase}'=='Y');  //           20Q2               21                 22                23
+EAF@HI.PAN <2020:2 2050:4>= -29, 4, 0,        13, 9, 5, 3,       1.5, 1, .5, .35,   .4 rep 8, .2 rep 4,  .1 rep *; 
+EAF@HI.ADD <2020:2 2050:4>=  EAF@HI.ADD + EAF@HI.pan;
+//                                    20Q2              21                     22                 23            24            25
+EAF@HON.PAN <2020:2 2050:4>= -24, 3, 4.5,      6.5, 4, -1.6, -.6,   -.6, -.4 rep 3,  -.2 rep 4, -.1 rep 4, -.25 rep 4, -.25 rep 4, -.2 rep 4, -.1 rep 4;
+EAF@HON.PAN <2050:4 2050:4>= .25;
+smooth EAF@HON.PAN = EAF@HON.PAN LINEAR;
+EAF@HON.ADD <2020:2 2050:4>=  EAF@HON.ADD + EAF@HON.pan;
+//                                      2020                  21                  22
+YLAF_R@HI.PAN <2020:1 2050:4>= 10, 270, -40, -210,  -140, -80, -50, 0,  0 rep 12;
+YLAF_R@HI.PAN <2030:1 2030:4>= 1.3 rep 4;
+YLAF_R@HI.PAN <2050:1 2050:4>= 4 rep 4;
+smooth YLAF_R@HI.PAN = YLAF_R@HI.PAN LINEAR;
+YLAF_R@HI.ADD <2020:1 2050:4>=  YLAF_R@HI.ADD + YLAF_R@HI.pan;
+END; // end ncovBASE —  EAF
+
+// ############  HIGH
+if ('{%nCovHIGH}'=='Y');  //           20Q2               21                     22              23
+EAF@HI.PAN <2020:2 2050:4>= -27, 13, 12,       8, 6, 3, 2,           1, .5, .4, .3,   .3 rep *; 
+EAF@HI.ADD <2020:2 2050:4>=  EAF@HI.ADD + EAF@HI.pan;
+//                                    20Q2              21                     22                 23
+EAF@HON.PAN <2020:2 2050:4>= -20, 8, 11,       1, 0, 0, -.5,        -.3, -.15 rep 3,  -.1 rep 4, .0 rep 4, .05 rep 4; 
+EAF@HON.PAN <2050:4 2050:4>= .3;
+smooth EAF@HON.PAN = EAF@HON.PAN LINEAR;
+EAF@HON.ADD <2020:2 2050:4>=  EAF@HON.ADD + EAF@HON.pan;
+//                                      2020                  21                  22
+YLAF_R@HI.PAN <2020:1 2050:4>= 10, 270, -140, -290,  -120, -20, 0, 0,  0 rep 4;
+YLAF_R@HI.PAN <2025:4 2025:4>= 0;
+YLAF_R@HI.PAN <2050:1 2050:4>= 4 rep 4;
+smooth YLAF_R@HI.PAN = YLAF_R@HI.PAN LINEAR;
+YLAF_R@HI.ADD <2020:1 2050:4>=  YLAF_R@HI.ADD + YLAF_R@HI.pan;
+END; // end ncovHIGH —  EAF
+
+// ************* nCoVLow— EAFLOW
+if ('{%nCovLow}'=='Y');  //           20Q2               21                 22                    23
+EAF@HI.PAN <2020:2 2050:4>= -27, -4, 8,       13, 9, 5, 4,       2.5, 1.5, .5, .35,   .4 rep *; 
+EAF@HI.ADD <2020:2 2050:4>=  EAF@HI.ADD + EAF@HI.pan;
+//                                    20Q2              21                     22                 23              24             25
+EAF@HON.PAN <2020:2 2050:4>= -20, 0, 5,      6.5, 5.5, -1.6, -.6,   -.6, -.4 rep 3,  -.25 rep 4, -.15 rep 4, -.1 rep 4;
+EAF@HON.PAN <2030:4 2030:4>= -.08;
+EAF@HON.PAN <2050:4 2050:4>= .4;
+smooth EAF@HON.PAN = EAF@HON.PAN LINEAR;
+EAF@HON.ADD <2020:2 2050:4>=  EAF@HON.ADD + EAF@HON.pan;
+//                                      2020                  21                     22           23
+YLAF_R@HI.PAN <2020:1 2050:4>= 10, 270, 100, -190,  -180, -110, -70, -20,  -15 rep 4, 0 rep 12;
+YLAF_R@HI.PAN <2030:1 2030:4>= 1 rep 4;
+YLAF_R@HI.PAN <2050:1 2050:4>= 2 rep 4;
+smooth YLAF_R@HI.PAN = YLAF_R@HI.PAN LINEAR;
+YLAF_R@HI.ADD <2020:1 2050:4>=  YLAF_R@HI.ADD + YLAF_R@HI.pan;
+END; // end ncovLow —  EAF
+
+//***************    TRADE    **************************************************
+//                                        20Q1         21Q1
+E_TRADE@HI.ADD <2020:1 2050:4>=  0 rep 4, .03 rep 4, .01 rep 4 , 0 rep *;
+//                                          19Q1                 20Q1
+E_TRADE@HON.ADD <2019:1 2050:4>=  .0, -1, -.6, .1,    .05, 0.08, -.012, -.015,  -.02 rep 3, -.008;
+E_TRADE@HON.ADD <2030:1 2030:4>=   -.003 rep 4;
+E_TRADE@HON.ADD <2050:1 2050:4>=   -.008 rep 4;
+smooth E_TRADE@HON.ADD = E_TRADE@HON.ADD LINEAR;
+//                                            19 
+YL_TRADE_R@HI.ADD <2019:3 2050:4>=   -10, -15, 5, 1;
+YL_TRADE_R@HI.ADD <2050:1 2050:4>=   1.7 rep 4;
+smooth YL_TRADE_R@HI.ADD = YL_TRADE_R@HI.ADD LINEAR;
+
+// ************* BASE--- TRADEBASE
+if ('{%nCovBASE}'=='Y');  //                 20Q2             21                  22              23           24
+E_TRADE@HI.pan <2020:2 2050:4>=  -11.5, 8,  3,    -2 , -1, 0, 0 ,    -.1 rep 4,    0 rep 4,  .03 rep 4, .025;
+E_TRADE@HI.pan <2035:4 2035:4>=  -.015;
+E_TRADE@HI.pan <2040:1 2040:1>=  -0.035;
+E_TRADE@HI.pan <2045:1 2045:1>=  -0.03;
+E_TRADE@HI.pan <2050:4 2050:4>=  -0.03;
+smooth E_TRADE@HI.pan = E_TRADE@HI.pan LINEAR;
+E_TRADE@HI.ADD <2020:1 2050:4>=  E_TRADE@HI.ADD + E_TRADE@HI.pan;
+
+E_TRADE@HOn.pan <2020:2 2050:4>= -20, 14,  -11,   18,  -8, 0, 0,     -.25, -.3 rep 3,  -.0 rep 4, 0 rep 4, .02 rep 4, .03 rep 4, .03 rep 4; 
+E_TRADE@hoN.pan <2040:1 2040:1>=   0.003;
+E_TRADE@hoN.pan <2045:1 2045:1>=   0.005;
+E_TRADE@hoN.pan <2050:4 2050:4>=   0.005;
+smooth E_TRADE@hoN.pan = E_TRADE@hoN.pan LINEAR;
+E_TRADE@HOn.ADD <2020:1 2050:4>=  E_TRADE@HOn.ADD + E_TRADE@HON.pan*.69;
+//                 							2020                   21                   22               23           24            25
+YL_TRADE_R@HI.pan <2020:1 2050:4>= -30, -105, 330, -485,  -100, 100, 35, 25 ,   5 rep 4,     .75 rep 4, 1.5 rep 4, 1 rep 4, .5 rep 4; 
+YL_TRADE_R@HI.pan <2030:4 2030:4>=   0.75;
+YL_TRADE_R@HI.pan <2035:4 2035:4>=   1;
+YL_TRADE_R@HI.pan <2040:4 2040:4>=   .9;
+YL_TRADE_R@HI.pan <2045:4 2045:4>=   .3;
+YL_TRADE_R@HI.pan <2050:4 2050:4>=   -.5;
+smooth YL_TRADE_R@HI.pan = YL_TRADE_R@HI.pan LINEAR;
+YL_TRADE_R@HI.ADD <2020:1 2050:4>=  YL_TRADE_R@HI.ADD + YL_TRADE_R@HI.pan;
+END; 
+
+// ############## HIGH--- TRADEhigh
+if ('{%nCovHIGH}'=='Y');  //                 20Q2            21                      22               23             24
+E_TRADE@HI.pan <2020:2 2050:4>=  -39, 29.5,  5,  -8.5 , -.5, -.3, -.2,   -.15 rep 4,    .02 rep 4,  .05 rep 4, .03;
+E_TRADE@HI.pan <2035:4 2035:4>=  -.015;
+E_TRADE@HI.pan <2040:1 2040:1>=  -0.035;
+E_TRADE@HI.pan <2045:1 2045:1>=  -0.03;
+E_TRADE@HI.pan <2050:4 2050:4>=  -0.03;
+smooth E_TRADE@HI.pan = E_TRADE@HI.pan LINEAR;
+E_TRADE@HI.ADD <2020:1 2050:4>=  E_TRADE@HI.ADD + E_TRADE@HI.pan;
+
+E_TRADE@HOn.pan <2020:2 2050:4>= -48, 26,  4,     24,  -16, -4, -.8,     -.55, -.45, -.25, -.15,  .06 rep 4, 0.08 rep 4, .03 rep 4; 
+E_TRADE@hoN.pan <2030:1 2030:1>=   0.05;
+E_TRADE@hoN.pan <2035:1 2035:1>=   0.03;
+E_TRADE@hoN.pan <2040:1 2040:1>=   0.0;
+E_TRADE@hoN.pan <2050:4 2050:4>=   .00;
+smooth E_TRADE@hoN.pan = E_TRADE@hoN.pan LINEAR;
+E_TRADE@HOn.ADD <2020:1 2050:4>=  E_TRADE@HOn.ADD + E_TRADE@HON.pan*.69;
+//                 							2020                   21                    22
+YL_TRADE_R@HI.pan <2020:1 2050:4>= -30, -305, 280, -165,   -50, 260, -25, -9 ,   -3, -1 rep 3, .75 rep 4, 1.5 rep *; 
+YL_TRADE_R@HI.ADD <2020:1 2050:4>=  YL_TRADE_R@HI.ADD + YL_TRADE_R@HI.pan;
+END; 
+
+// ************* Low--- TRADElow
+if ('{%nCovLow}'=='Y');  //                 20Q2             21                       22            23               24  
+E_TRADE@HI.pan <2020:2 2050:4>=  -39, 15.5,  8,   1.1 , -.5, -.35, -.4,  -.34 rep 4,    -.15 rep 4,  -.05 rep 4, .0 rep *;
+E_TRADE@HI.ADD <2020:1 2050:4>=  E_TRADE@HI.ADD + E_TRADE@HI.pan;
+
+E_TRADE@HOn.pan <2020:2 2050:4>= -48, 10,  6,     19,  3, -2.5, -1.5,      -.5, -.43 rep 3,  -.25 rep 4, -0.1 rep 4, .0 rep 4; 
+E_TRADE@hoN.pan <2030:4 2030:4>=   0.029;
+E_TRADE@hoN.pan <2040:1 2040:1>=   0.055;
+E_TRADE@hoN.pan <2045:1 2045:1>=   0.015;
+E_TRADE@hoN.pan <2050:4 2050:4>=   0.013;
+smooth E_TRADE@hoN.pan = E_TRADE@hoN.pan LINEAR;
+E_TRADE@HOn.ADD <2020:1 2050:4>=  E_TRADE@HOn.ADD + E_TRADE@HON.pan*.69;
+
+//                 							20Q1 Q2              21                    22
+YL_TRADE_R@HI.pan <2020:1 2050:4>= -30, -325, 70, -15,  -140, 230, 85, 35 ,   5 rep 4, .75 rep 4, 1.5 rep 8, 1 rep 4, 0 rep *; 
+YL_TRADE_R@HI.ADD <2020:1 2050:4>=  YL_TRADE_R@HI.ADD + YL_TRADE_R@HI.pan;
+END; 
+
+//***************    TRANSPORTATION AND  UTILITIES    **************************
+//                                     20Q1
+E_TU@HI.ADD <2020:1 2050:4>=  -.15 rep 4,  -.08, -.07, -.05, 0,  .001;
+E_TU@HI.ADD <2025:4 2025:4>= 0;
+E_TU@HI.ADD <2050:4 2050:4>= 0;
+smooth E_TU@HI.ADD = E_TU@HI.ADD LINEAR;
+
+//                                      20Q1 
+E_TU@HON.ADD <2020:1 2050:4>=  -.15 rep 4,  -.08, -.08, -.05, 0,  .001;
+E_TU@HON.ADD <2025:4 2025:4>= 0;
+E_TU@HON.ADD <2050:4 2050:4>= 0;
+smooth E_TU@HON.ADD = E_TU@HON.ADD LINEAR;
+
+//                                         19Q4
+YL_TU_R@HI.ADD <2019:4 2050:4>=  5,    3, 2, 1, 0;
+YL_TU_R@HI.ADD <2023:1 2023:4>= .8 rep 4;
+YL_TU_R@HI.ADD <2030:1 2030:4>= -.3 rep *;
+YL_TU_R@HI.ADD <2040:1 2040:4>= -.8 rep *;
+YL_TU_R@HI.ADD <2050:1 2050:4>= -1.5 rep *;
+smooth YL_TU_R@HI.ADD = YL_TU_R@HI.ADD LINEAR;
+
+
+// ###################  BASE ---- E_TUBASE
+if ('{%nCovBase}'=='Y');  // 			  20Q2                  21                       22                     23             24             25
+E_TU@HI.pan <2020:2 2050:4>=   7.6,  9.9,  -1.5,   -7, -10, -2.2, -1.2,   -.75, -.65, -.55, -.36,  -.3 rep 4, -.13 rep 4, -.08 rep 4, -.16; 
+E_TU@HI.pan <2030:4 2030:4>=  .018;
+smooth E_TU@HI.pan = E_TU@HI.pan LINEAR;
+E_TU@HI.ADD <2020:2 2050:4>=  E_TU@HI.ADD + E_TU@HI.pan;
+// 			                          20Q2                21                       22                    23 
+E_TU@HON.pan <2020:2 2050:4>=  3.5,  9.8, -.5,   -5.5, -8.7, -1.9, -1,     -.7, -.55, -.45, -.3,  -.23 rep 4, -.11 rep 4, -.1 rep 4, -.13; 
+E_TU@HON.pan <2030:4 2030:4>=  .005;
+smooth E_TU@HON.pan = E_TU@HON.pan LINEAR;
+E_TU@HON.ADD <2020:2 2050:4>=  E_TU@HON.ADD + E_TU@HON.pan;
+
+// 			                             20            21                    22               23
+YL_TU_R@HI.pan <2020:1 2050:4>= -8 rep 4,   30, 170, -115, -40,  -30, -5 rep 4, 0 rep 8;
+YL_TU_R@HI.pan <2050:4 2050:4>=   2;
+smooth YL_TU_R@HI.pan = YL_TU_R@HI.pan LINEAR;
+ 
+YL_TU_R@HI.ADD <2020:1 2050:4>=  YL_TU_R@HI.ADD + YL_TU_R@HI.pan;
+END; // end if nCovBase = Y
+
+// ################# HIGH ---- TRANSPORT & UTIL
+if ('{%nCovHIGH}'=='Y');  // 			  20Q2               21                       22                      23              24
+E_TU@HI.pan <2020:2 2050:4>=   7.5,  9.9,  -4,  -8.2, -10.2, -1.5, -.5,  -.35, -.34, -.34, -.33,  -.13 rep 4, -.05 rep 4, -.0 rep *;   E_TU@HI.ADD <2020:2 2050:4>=  E_TU@HI.ADD + E_TU@HI.pan;
+// 			                          20Q2                21                       22                      23 
+E_TU@HON.pan <2020:2 2050:4>=  3.5,  9.8, -3,   -6.5, -8.9, -1.3, -.33,    -.33, -.3, -.26, -.22,  -.11 rep 4, -.035 rep 4, 0 rep 4; E_TU@HON.pan <2030:4 2030:4>=  -.01;
+smooth E_TU@HON.pan = E_TU@HON.pan LINEAR;
+E_TU@HON.ADD <2020:2 2050:4>=  E_TU@HON.ADD + E_TU@HON.pan;
+// 			                             20            21                    22
+YL_TU_R@HI.pan <2020:1 2050:4>= -8 rep 4,   30, 170, -165, -40,  0 rep 4, 0 rep 8; 
+YL_TU_R@HI.pan <2050:4 2050:4>=   2;
+smooth YL_TU_R@HI.pan = YL_TU_R@HI.pan LINEAR;
+YL_TU_R@HI.ADD <2020:1 2050:4>=  YL_TU_R@HI.ADD + YL_TU_R@HI.pan;
+END; // end if nCovHIGH = Y
+
+
+// ************* TULow ---- TRANSPORT & UTIL
+if ('{%nCovLow}'=='Y');  // 			  20Q2                 21                      22                    23                    24
+E_TU@HI.pan <2020:2 2050:4>=   7.5,  12.3,  2.5,   -7, -12, -6.2, -2,    -.75, -.7, -.66, -.6,  -.5, -.45, -.2 -.2 , -.25 rep 4, -.14 rep 4; 
+E_TU@HI.pan <2030:4 2030:4>=  .018;
+smooth E_TU@HI.pan = E_TU@HI.pan LINEAR;
+E_TU@HI.ADD <2020:2 2050:4>=  E_TU@HI.ADD + E_TU@HI.pan;
+
+// 			                          20Q2                21                         22                      23 
+E_TU@HON.pan <2020:2 2050:4>=  3.3,  10.5,  3.5,   -5.3, -10.2, -5.2, -1.7,  -.7, -.55, -.53, -.45,  -.36 rep 3,   -.2 rep 4, -.1 rep 4; 
+E_TU@HON.pan <2030:4 2030:4>=  .005;
+E_TU@HON.pan <2035:4 2035:4>=   0;
+E_TU@HON.pan <2050:4 2050:4>=   .001;
+smooth E_TU@HON.pan = E_TU@HON.pan LINEAR;
+E_TU@HON.ADD <2020:2 2050:4>=  E_TU@HON.ADD + E_TU@HON.pan;
+
+// 			                             20            21                   22
+YL_TU_R@HI.pan <2020:1 2050:4>= -8 rep 4,   30, 170, -15, -90,  -30, -35, -30, -5,  0 rep 12;
+YL_TU_R@HI.pan <2050:4 2050:4>=   1.7;
+smooth YL_TU_R@HI.pan = YL_TU_R@HI.pan LINEAR;
+ 
+YL_TU_R@HI.ADD <2020:1 2050:4>=  YL_TU_R@HI.ADD + YL_TU_R@HI.pan;
+END; // end if nCovLow = Y
+
+
+//***************    HEALTH     ************************************************
+//                                    20            21
+EHC@HI.ADD <2020:1 2050:4>=  .0 rep 4, -.05 rep 4, .02 rep 4, .03 rep 4, .04 rep *;
+//                                    2019                     20            21
+EHC@NBI.ADD <2019:1 2050:4>=  -.08, .15, .05 , .002, .0 rep 4, .00 rep *;
+
+//                                      19          20
+YLHC_R@HI.ADD <2019:3 2050:4>= 19, 16, 14, 16 rep 3, 16 rep 4, 16 rep 4, 16;
+YLHC_R@HI.ADD <2050:4 2050:4>= 45; 
+smooth YLHC_R@HI.ADD = YLHC_R@HI.ADD LINEAR;
+
+// ################# HIGH
+if ('{%nCovHIGH}'=='Y');  //            20Q2               21          22
+EHC@HI.PAN <2020:2 2050:4>=   -8,  7.9,  2,    -.5 rep 4, 0 rep 4, -.05 rep *; 
+ehc@HI.ADD <2020:1 2050:4>=  ehc@HI.ADD + ehc@HI.pan;
+
+//                                    20Q2                21                     22
+EHC@NBI.PAN <2020:2 2050:4>=  -2, 0, 2,         .25, .2, -.4, -.2, .0 rep *; 
+ehc@NBI.ADD <2020:1 2050:4>=  ehc@NBI.ADD + ehc@NBI.pan;
+
+//                                       20Q1                  21                     22
+YLHC_R@HI.PAN <2020:1 2050:4>= -1.5, -1.5, 90, -105,  -20, 90, -15, -15, -10,  0 rep *; 
+YLHC_R@HI.ADD <2020:1 2050:4>=  YLHC_R@HI.ADD + YLHC_R@HI.pan;
+END; 
+// ################# BASEHC
+if ('{%nCovBase}'=='Y');  //            20Q2               21          22
+EHC@HI.PAN <2020:2 2050:4>=   -8,  5.9,  0,     .4 rep 4, 0 rep 4, -.05 rep 12, -.01 rep *; 
+ehc@HI.ADD <2020:1 2050:4>=  ehc@HI.ADD + ehc@HI.pan;
+
+//                                    20Q2                 21                     22
+EHC@NBI.PAN <2020:2 2050:4>=  -2, -.25, 1.7,     .1, .25, -.2, -.1, .0 rep *; 
+ehc@NBI.ADD <2020:1 2050:4>=  ehc@NBI.ADD + ehc@NBI.pan;
+
+//                                       20Q1                  21                     22
+YLHC_R@HI.PAN <2020:1 2050:4>= -1.5, -1.5, 90, -65,   5, 60, -15, -15, -10,  0 rep *; 
+YLHC_R@HI.ADD <2020:1 2050:4>=  YLHC_R@HI.ADD + YLHC_R@HI.pan;
+END; 
+
+
+// ################# LOW
+if ('{%nCovLow}'=='Y');  //            20Q2                21          22
+EHC@HI.PAN <2020:2 2050:4>=   -8,  1.8,  3,     .4 rep 4, 0 rep 4, -.05 rep *; 
+ehc@HI.ADD <2020:1 2050:4>=  ehc@HI.ADD + ehc@HI.pan;
+
+//                                    20Q2                 21                     22
+EHC@NBI.PAN <2020:2 2050:4>=  -2.2, -1.3,  1.9,  .7, .25, -.2, -.1, .0 rep *; 
+ehc@NBI.ADD <2020:1 2050:4>=  ehc@NBI.ADD + ehc@NBI.pan;
+
+//                                       20Q1                  21                     22
+YLHC_R@HI.PAN <2020:1 2050:4>= -1.5, -4.5, 70, -5,    -35, 60, -15, -15, -10,  0 rep *; 
+YLHC_R@HI.ADD <2020:1 2050:4>=  YLHC_R@HI.ADD + YLHC_R@HI.pan;
+END; 
+//
+
+//***************    FEDERAL GOV    ********************************************
+//!									     Census
+//!                                       20Q1   Q2   Q3     Q4       21Q1    Q2   Q3
+//SERIES <2020:1 2050:4> EGVFD@HI.ADD =    .02,   .6, -.55,  -.007,     .00, .00, -.07, .15, .05;
+//SERIES <2050:4 2050:4> EGVFD@HI.ADD =   -.13;
+//SMOOTH EGVFD@HI.ADD = EGVFD@HI.ADD LINEAR;
+
+//!                                       20Q1
+EGVFD@HON.ADD <2020:1 2050:4>=   -.1, .009 rep 3, .016 rep 4, .014;
+EGVFD@HON.ADD <2050:4 2050:4>=   .016;
+smooth EGVFD@HON.ADD = EGVFD@HON.ADD LINEAR;
+
+//!                                        19Q2      20Q1						
+YLGVFD_R@HI.ADD <2019:3 2050:4>=  7, 0,    -1, -1, -1 rep 4, -1.2  rep 8, -1.3 rep *;
+
+//!!! military get their pay raises 1st quarter every year
+//SERIES <2017:4 2050:4> YLGVML_R@HI.ADD =  0, -9 repeat 4, -5 repeat 4, -6.5;
+//SERIES <2050:4 2050:4> YLGVML_R@HI.ADD =   -15;
+//SMOOTH YLGVML_R@HI.ADD = YLGVML_R@HI.ADD LINEAR;
+
+if ('{%nCovHIGH}'=='Y');  //  HIGH Scen
+//!									     Census
+//!                                       20Q2       Q4       21Q1    Q2   Q3
+EGVFD@HI.ADD <2020:2 2050:4>=    .3, -.3,  -.25,     -.2, -.2, -.07, .1, .07, .03;
+EGVFD@HI.ADD <2050:4 2050:4>=   -.13;
+smooth EGVFD@HI.ADD = EGVFD@HI.ADD LINEAR;
+//!                                       20Q2
+EGVFD@HON.ADD <2020:1 2050:4>=   -.1  .009 rep 3,        .01 rep 4, .014;
+EGVFD@HON.ADD <2050:4 2050:4>=   .016;
+smooth EGVFD@HON.ADD = EGVFD@HON.ADD LINEAR;
+//!                                        20Q1						
+YLGVFD_R@HI.ADD <2020:1 2050:4>=  -1, -4, -7, -6,   -3.5 rep 4,  -1.5  rep 4, -1 rep 4, -1 rep *;
+
+//!!! military get their pay raises 1st quarter every year
+YLGVML_R@HI.ADD <2020:1 2050:4>=  0, -20, -6.5;
+YLGVML_R@HI.ADD <2025:4 2025:4>=   -9, -11;
+YLGVML_R@HI.ADD <2030:4 2030:4>=   -11;
+YLGVML_R@HI.ADD <2035:4 2035:4>=   -8;
+YLGVML_R@HI.ADD <2040:4 2040:4>=   -13;
+YLGVML_R@HI.ADD <2050:4 2050:4>=   -14;
+smooth YLGVML_R@HI.ADD = YLGVML_R@HI.ADD LINEAR;
+//SERIES <2020:1 2050:4> YLGVML_R@HI.ADD =  0, -20;
+//SERIES <2050:4 2050:4> YLGVML_R@HI.ADD =   -155;
+//SMOOTH YLGVML_R@HI.ADD = YLGVML_R@HI.ADD LINEAR;
+END; // end if nCovHIGH = Y
+
+if ('{%nCovBase}'=='Y');  //  BASE Scen
+//!									     Census
+//!                                       20Q2       Q4       21Q1    Q2   Q3      22
+EGVFD@HI.ADD <2020:2 2050:4>=    .3, -.3,  -.25,     -.2, -.2, -.07, .1, .07, .03;
+EGVFD@HI.ADD <2025:1 2025:4>=   .03 rep 4, -.05;
+EGVFD@HI.ADD <2030:1 2030:4>=   -.029 rep 4;
+EGVFD@HI.ADD <2050:1 2050:4>=   -.1 rep 4;
+smooth EGVFD@HI.ADD = EGVFD@HI.ADD LINEAR;
+
+//!                                       20Q2
+EGVFD@HON.ADD <2020:1 2050:4>=   -.1  .009 rep 3,        .01 rep 4, .014;
+EGVFD@HON.ADD <2050:4 2050:4>=   .01;
+smooth EGVFD@HON.ADD = EGVFD@HON.ADD LINEAR;
+//!                                        20Q1						
+YLGVFD_R@HI.ADD <2020:1 2050:4>=  -1, -4, -7, -6,   -3.5 rep 4,  -1.5  rep 4, -1 rep 4, -1 rep *;
+
+//!!! military get their pay raises 1st quarter every year
+YLGVML_R@HI.ADD <2020:1 2050:4>=  0, -20, -6.5;
+YLGVML_R@HI.ADD <2025:4 2025:4>=   -9, -11;
+YLGVML_R@HI.ADD <2030:4 2030:4>=   -11;
+YLGVML_R@HI.ADD <2035:4 2035:4>=   -8;
+YLGVML_R@HI.ADD <2040:4 2040:4>=   -13;
+YLGVML_R@HI.ADD <2050:4 2050:4>=   -14;
+smooth YLGVML_R@HI.ADD = YLGVML_R@HI.ADD LINEAR;
+END; // end if nCovBase = Y
+
+
+if ('{%nCovLow}'=='Y');  //  Low Scen
+//!                                       20Q2       Q4       21Q1    Q2   Q3      22
+EGVFD@HI.ADD <2020:2 2050:4>=    .3, -.3,  -.25,     -.2, -.2, -.07, .1, .07, .03;
+EGVFD@HI.ADD <2025:1 2025:4>=   .03 rep 4, -.05;
+EGVFD@HI.ADD <2030:1 2030:4>=   -.035 rep 4;
+EGVFD@HI.ADD <2050:1 2050:4>=   -.13 rep 4;
+smooth EGVFD@HI.ADD = EGVFD@HI.ADD LINEAR;
+
+//!                                       20Q2
+EGVFD@HON.ADD <2020:1 2050:4>=   -.1  .009 rep 3,        .01 rep 4, .014;
+EGVFD@HON.ADD <2050:4 2050:4>=   .016;
+smooth EGVFD@HON.ADD = EGVFD@HON.ADD LINEAR;
+
+//!                                        20Q1						
+YLGVFD_R@HI.ADD <2020:1 2050:4>=  -1, -4, -7, -6,   -3.5 rep 4,  -1.5  rep 4, -1 rep 4, -1 rep 4, -2 rep *;
+
+//!!! military get their pay raises 1st quarter every year
+//SERIES <2020:1 2050:4> YLGVML_R@HI.ADD =  0, -20;
+//SERIES <2050:4 2050:4> YLGVML_R@HI.ADD =   -155;
+YLGVML_R@HI.ADD <2020:1 2050:4>=  0, -20, -6.5;
+YLGVML_R@HI.ADD <2025:4 2025:4>=   -9, -11;
+YLGVML_R@HI.ADD <2030:4 2030:4>=   -11;
+YLGVML_R@HI.ADD <2035:4 2035:4>=   -8;
+YLGVML_R@HI.ADD <2040:4 2040:4>=   -13;
+YLGVML_R@HI.ADD <2050:4 2050:4>=   -14;
+smooth YLGVML_R@HI.ADD = YLGVML_R@HI.ADD LINEAR;
+END; // end if nCovLow = Y
+
+
+
+//***************    STATE AND LOCAL GOV    ************************************
+//				                        20Q2 
+E_GVSL@HI.ADD <2020:2 2050:4>=  -.2, -.2;
+E_GVSL@HI.ADD <2050:1 2050:4>= -0.2 rep 4; 
+smooth E_GVSL@HI.ADD = E_GVSL@HI.ADD LINEAR;
+//				                         20Q2
+E_GVSL@HON.ADD <2020:2 2050:4>= -.15 rep 3, -.13; 
+E_GVSL@HON.ADD <2050:1 2050:4>= -0.14 rep 4; 
+smooth E_GVSL@HON.ADD = E_GVSL@HON.ADD LINEAR;
+//                                        19:3
+YL_GVSL_R@HI.ADD <2019:3 2050:4>= 25, 30, 50, 50, 45, 45;
+YL_GVSL_R@HI.ADD <2050:1 2050:4>= 60 rep 4;
+smooth YL_GVSL_R@HI.ADD = YL_GVSL_R@HI.ADD LINEAR;
+
+
+// ####################  GVSLHIGH
+if ('{%nCovHIGH}'=='Y');  //  HIGH Scen
+//                                       20Q2              21              22
+E_GVSL@HI.pan <2020:2 2050:4>= -.2, .2, .2,       -.1 rep 4,    -.1 rep 4, .005 rep *;
+E_GVSL@HI.ADD <2020:2 2050:4>=   E_GVSL@HI.ADD + 1.3*E_GVSL@HI.pan;
+
+E_GVSL@HON.pan <2020:2 2050:4>= -.2, .15, .15,    -.1 rep 4, -.13 rep 4, -.025 rep *;
+E_GVSL@HON.ADD <2020:2 2050:4>=  E_GVSL@HON.ADD + E_GVSL@HON.pan;
+
+//				                         20Q1             21Q1          22            23 
+YL_GVSL_R@HI.pan <2020:1 2050:4>= -26 rep 4,  -26 rep 4, -13 rep 4, -12 rep 4, -10 rep 4, -6 rep *;
+YL_GVSL_R@HI.ADD <2020:1 2050:4>=   YL_GVSL_R@HI.ADD + YL_GVSL_R@HI.pan;
+
+END; // end if nCovHIGH = Y
+
+// ####################  GVSLBASE
+if ('{%nCovBase}'=='Y'); 
+//                                       20Q2             21              22            23-25
+E_GVSL@HI.pan <2020:2 2050:4>= -.2, -.2, -.2,  -.2 rep 4,    -.1 rep 4, .005 rep 12, .008 rep *;
+E_GVSL@HI.ADD <2020:2 2050:4>=   E_GVSL@HI.ADD + 1.3*E_GVSL@HI.pan;
+//
+E_GVSL@HON.pan <2020:2 2050:4>= -.2, -.2, -.2,  -.185 rep 4, -.13 rep 4, -.025 rep 8, -.015 rep 4, -.01 rep *;
+E_GVSL@HON.ADD <2020:2 2050:4>=  E_GVSL@HON.ADD + E_GVSL@HON.pan;
+//				                         20Q1             21Q1          22            23 
+YL_GVSL_R@HI.pan <2020:1 2050:4>= -26 rep 4,  -26 rep 4, -13 rep 4, -12 rep 4, -10 rep 4, -6 rep *;
+YL_GVSL_R@HI.ADD <2020:1 2050:4>=   YL_GVSL_R@HI.ADD + YL_GVSL_R@HI.pan;
+//
+END; // end if nCovBase = Y
+
+// ####################  GVSLLOW
+if ('{%nCovLow}'=='Y');  //  Low Scen
+//                                       20Q2             21              22
+E_GVSL@HI.pan <2020:2 2050:4>= -.2, -.2, -.2,  -.2 rep 4,    -.1 rep 4, .005 rep *;
+E_GVSL@HI.ADD <2020:2 2050:4>=   E_GVSL@HI.ADD + 1.3*E_GVSL@HI.pan;
+//
+E_GVSL@HON.pan <2020:2 2050:4>= -.2, -.2, -.2,  -.185 rep 4, -.13 rep 4, -.025 rep 4, -.01 rep 4, -.015 rep *;
+E_GVSL@HON.ADD <2020:2 2050:4>=  E_GVSL@HON.ADD + E_GVSL@HON.pan;
+//				                         20Q1             21Q1          22            23 
+YL_GVSL_R@HI.pan <2020:1 2050:4>= -28 rep 4,  -28 rep 4, -15 rep 4, -13 rep 4, -12 rep 4, -8 rep 4;
+YL_GVSL_R@HI.PAN <2050:1 2050:4>= -12 rep 4;
+smooth YL_GVSL_R@HI.PAN = YL_GVSL_R@HI.PAN LINEAR;
+YL_GVSL_R@HI.ADD <2020:1 2050:4>=   YL_GVSL_R@HI.ADD + YL_GVSL_R@HI.pan;
+// furlough
+//                                         2020                   2021         2022                2023
+//SERIES <2020:1 2050:4> YL_GVSL_R@HI.pan = -36, -280, -100, -70,  0 repeat 4,  -12, 200, 90, -20, -40, -20, -10, -5 , -2 REPEAT *;
+//SERIES <2020:1 2050:4> YL_GVSL_R@HI.ADD =   YL_GVSL_R@HI.ADD + YL_GVSL_R@HI.pan;
+END; // end if nCovLow = Y
+
+
+
+//***************    FINANCE INSURANCE AND REALESTATE    ***********************
+//                                      	2020
+E_FIR@HI.ADD <2020:1 2050:4>=  .05, .06, .07, .08, .05;
+E_FIR@HI.ADD <2025:4 2025:4>=  .03;
+E_FIR@HI.ADD <2030:4 2030:4>=  .03;
+E_FIR@HI.ADD <2050:4 2050:4>=  .03 ;
+smooth E_FIR@HI.ADD = E_FIR@HI.ADD LINEAR;
+
+//                                        2019                     2020
+E_FIR@NBI.ADD <2019:1 2020:4>=  -.04, -.03, .0, .01,  .015, .015, .015, .017 ;
+E_FIR@NIB.ADD <2030:4 2030:4>=  .017;
+E_FIR@NBI.ADD <2050:4 2050:4>=  .044;
+smooth E_FIR@NBI.ADD = E_FIR@NBI.ADD LINEAR;
+
+YL_FIR_R@HI.ADD <2019:1 2050:4>= 12, 8, 6, 6, 9; 
+YL_FIR_R@HI.ADD <2050:4 2050:4>= 20;
+smooth YL_FIR_R@HI.ADD = YL_FIR_R@HI.ADD LINEAR;
+
+// ###############  HIGH
+if ('{%nCovHIGH}'=='Y'); // ** e_fir      20Q2              21                   22
+E_FIR@HI.pan <2020:2 2050:4>=  -.4, 0, .55,     .15, .05, 0, 0,     .03 rep *;
+E_FIR@HI.ADD <2020:2 2050:4>=   E_FIR@HI.ADD + E_FIR@HI.pan;
+//                                       20Q2             21                        22
+E_FIR@NBI.pan <2020:2 2050:4>=  0, .04, -.04,   -.015 rep 4,  .0 rep 4, .0 rep 4, .005 rep *;  
+E_FIR@NBI.ADD <2020:2 2050:4>= E_FIR@NBI.ADD + E_FIR@NBI.pan;
+
+//SERIES <1990:1 2050:4> YL_FIR_R@HI.ADD =   YL_FIR_R@HI.ADD + 65*E_FIR@HI.pan;
+END; // end if nCovHIGH = Y
+
+// ###############  FIRBASE
+if ('{%nCovBase}'=='Y'); // ** e_fir      20Q2              21                   22
+E_FIR@HI.pan <2020:2 2050:4>=  -.4, -0.2, .4,   .15, .05, 0, 0,     .03 rep 12, 0.01;
+E_FIR@HI.PAN <2030:1 2030:4>=  .0 rep 4;
+E_FIR@HI.PAN <2050:4 2050:4>= -0.005;
+smooth E_FIR@HI.PAN = E_FIR@HI.PAN LINEAR;
+E_FIR@HI.ADD <2020:2 2050:4>=   E_FIR@HI.ADD + E_FIR@HI.pan;
+//                                       20Q2             21                        22
+E_FIR@NBI.pan <2020:2 2050:4>=  0, .04, -.05,   -.02, -.02, -.02, -.015,  -.01 rep 4, -.01 rep 4, -.005 rep 4;  
+E_FIR@NBI.PAN <2030:4 2030:4>=  .012;
+E_FIR@NBI.PAN <2035:4 2035:4>=  .01;
+E_FIR@NBI.PAN <2040:4 2040:4>=  .01;
+E_FIR@NBI.PAN <2050:4 2050:4>=  0.00;
+smooth E_FIR@NBI.PAN = E_FIR@NBI.PAN LINEAR;
+
+E_FIR@NBI.ADD <2020:2 2050:4>= E_FIR@NBI.ADD + E_FIR@NBI.pan;
+
+//SERIES <1990:1 2050:4> YL_FIR_R@HI.ADD =   YL_FIR_R@HI.ADD + 65*E_FIR@HI.pan;
+END; // end if nCovBase = Y
+
+// ###############  LOW
+if ('{%nCovLow}'=='Y'); // ** e_fir      20Q2              21                   22
+E_FIR@HI.pan <2020:2 2050:4>=  -.4, -0.2, .5,   .15, .1, .05, 0,     .03 rep 12, .01;
+E_FIR@HI.PAN <2030:1 2030:4>=  .0 rep 4;
+E_FIR@HI.PAN <2050:4 2050:4>= -0.005;
+smooth E_FIR@HI.PAN = E_FIR@HI.PAN LINEAR;
+E_FIR@HI.ADD <2020:2 2050:4>=   E_FIR@HI.ADD + E_FIR@HI.pan;
+
+//                                       20Q2             21                        22
+E_FIR@NBI.pan <2020:2 2050:4>=  0, .04, -.05,   -.02, -.02, -.02, -.015,  -.01 rep 4, -.01 rep 4, -.005 rep 4;  
+E_FIR@NBI.PAN <2030:4 2030:4>=  .005;
+E_FIR@NBI.PAN <2035:4 2035:4>=  .005;
+E_FIR@NBI.PAN <2040:4 2040:4>=  .005;
+E_FIR@NBI.PAN <2050:4 2050:4>=  0.00;
+smooth E_FIR@NBI.PAN = E_FIR@NBI.PAN LINEAR;
+E_FIR@NBI.ADD <2020:2 2050:4>= E_FIR@NBI.ADD + E_FIR@NBI.pan;
+
+YL_FIR_R@HI.ADD <1990:1 2050:4>=   YL_FIR_R@HI.ADD;
+YL_FIR_R@HI.ADD <1925:1 2050:4>=   YL_FIR_R@HI.ADD - 4;
+END; // end if nCovLow = Y
+
+
+
+//***************    OTHER SERVICES -- `    *********************************
+//                                        2020
+E_ELSE@HI.ADD <2020:1 2050:4>=   -6.65;
+E_ELSE@HI.ADD <2030:1 2030:1>=  -8.3;
+E_ELSE@HI.ADD <2035:1 2035:1>=  -10;
+E_ELSE@HI.ADD <2050:4 2050:4>=  -10.8;
+smooth E_ELSE@HI.ADD = E_ELSE@HI.ADD LINEAR;
+//                                         2019
+E_ELSE@NBI.ADD <2019:1 2050:4>=  -.8 rep 4, -1 rep 4, -.85 rep 4, -.99;
+//SERIES <2030:1 2030:4>  E_ELSE@NBI.ADD =  -1.07;
+E_ELSE@NBI.ADD <2050:4 2050:4>=  -1.15;
+smooth E_ELSE@NBI.ADD = E_ELSE@NBI.ADD LINEAR;
+//                                          20                    21
+YL_ELSE_R@HI.ADD <2019:4 2050:4>=  -20 rep 4, 0 rep *;
+//
+
+// ###############  HIGH
+if ('{%nCovHIGH}'=='Y');
+E_ELSE@HI.SOL <2000Q1 2050Q4>= E_ELSE@HI!Q;
+//                                     20Q2                 21                          22                          23                          24
+E_ELSE@HI.SOL <2020Q2 2025Q4>= 110.9, 116.8, 122.1, 127.3, 131.3, 133.3, 134.6, 134.7, 134.7, 134.9, 135.1, 135.2, 135.3, 135.5, 135.7, 135.8, 135.9, 136.1, 136.3, 136.4, 136.5, 136.7, 136.9;
+E_ELSE@HI.SOL <2050Q4 2050Q4>= 155;
+smooth E_ELSE@HI.SOL = E_ELSE@HI.SOL LINEAR;
+//                                      20Q2                 21                    22   
+E_else@NBI.pan <2020:2 2050:4>= -7.3, -1.3, -1.2,  -.3, 4, 0, 1.5,       1.1, .4, .2, .1,   .05 rep 4, .05 rep  4, .06 rep *;
+E_ELSE@NBI.ADD <2020:2 2050:4>=  E_ELSE@NBI.ADD + E_else@NBI.pan;
+
+//                                   20                      21                   22   
+YL_ELSE_R <2020:1 2050:4>=  100, 830, -890, -190,  -80, -40, -15 rep 4, -5  rep * ;
+YL_ELSE_R@HI.ADD <2020:1 2050:4>=   YL_ELSE_R@HI.ADD + YL_ELSE_R;
+
+END; // end if nCovHIGH = Y
+
+// ###############  BASE
+if ('{%nCovBase}'=='Y');
+E_ELSE@HI.SOL <2000Q1 2050Q4>= E_ELSE@HI!Q;
+//                                     20Q2                 21                          22                          23                          24
+E_ELSE@HI.SOL <2020Q2 2025Q4>= 110.9, 116.8, 122.1, 127.3, 131.3, 133.3, 134.6, 134.7, 134.7, 134.9, 135.1, 135.2, 135.3, 135.5, 135.7, 135.8, 135.9, 136.1, 136.3, 136.4, 136.5, 136.7, 136.9;
+E_ELSE@HI.SOL <2050Q4 2050Q4>= 152;
+smooth E_ELSE@HI.SOL = E_ELSE@HI.SOL LINEAR;
+//                                      20Q2                    21                    22   
+E_else@NBI.pan <2020:2 2050:4>= -7.3, -2, -3,        -.4, 3.5, .5, 2.5,    1.3, .7, .6, .4,  .2 rep 4, .05 rep  *;
+E_ELSE@NBI.ADD <2020:2 2050:4>=  E_ELSE@NBI.ADD + E_else@NBI.pan;
+
+//                                   20                      21                   22   
+YL_ELSE_R <2020:1 2050:4>=  100, 830, -670, -180,  -220, -50, -15 rep 4, -5  rep 4 ;
+YL_ELSE_R <2050:1 2050:4>=  -10 rep 4;
+smooth YL_ELSE_R = YL_ELSE_R LINEAR;
+YL_ELSE_R@HI.ADD <2020:1 2050:4>=   YL_ELSE_R@HI.ADD + YL_ELSE_R;
+
+END; // end if nCovBase = Y
+
+// ###############  LOW
+if ('{%nCovLow}'=='Y');//  ##### LOW
+E_ELSE@HI.SOL <2000Q1 2050Q4>= E_ELSE@HI!Q;
+//                                     20Q2                 21                          22                          23                          24
+E_ELSE@HI.SOL <2020Q2 2025Q4>= 110.9, 108.4, 113.7, 120.1, 124.2, 126.0, 127.4, 127.5, 127.7, 127.9, 128.2, 128.2, 128.2, 128.3, 128.5, 128.5, 128.6, 128.7, 128.9, 128.9, 129.0, 129.2, 129.3, 129.5, 129.8, 130.0, 130.3;
+E_ELSE@HI.SOL <2050Q4 2050Q4>= 145;
+smooth E_ELSE@HI.SOL = E_ELSE@HI.SOL LINEAR;
+//                                      20Q2                    21                    22   
+E_else@NBI.pan <2020:2 2050:4>= -7.2,  -4.2, -4,       -1.3, 2.5, .5, 2.5,   1.3, .7, .6, .4,  .2 rep 4, .05 rep  *;
+E_ELSE@NBI.ADD <2020:2 2050:4>=  E_ELSE@NBI.ADD + E_else@NBI.pan;
+//                                   20                    21                   22   
+YL_ELSE_R <2020:1 2050:4>=  100, 830, 0, -540,   -250, -170, -50 rep 4,   -15  rep 4;
+YL_ELSE_R <2050:1 2050:4>=  0 rep 4;
+smooth YL_ELSE_R = YL_ELSE_R LINEAR;
+YL_ELSE_R@HI.ADD <2020:1 2050:4>=   YL_ELSE_R@HI.ADD + YL_ELSE_R;
+END; // end if nCovLow = Y
+
+
+
+
+//***************    CONSTRUCTION    *******************************************
+
+//!! check to make sure famsize forecast matches ymed@hon.a/(y@hon.sola/nr@hon.sola);
+//print<2012 2016> famsize@hon.sola, ymed@hon.a/(sh_ypc@hon.sola*y@hi.sola/nr@hi.sola), YMED@HON.A, famsize@hon.sola*(sh_ypc@hon.sola*y@hi.sola)/nr@hi.sola;
+
+// No longer use family size.  new ymedc@hon.eq
+
+// *** INCOME SHARE ***
+SH_YPC@HON.ADD <2016:1 2050:4>= .0003 rep 3, .0004 ;
+SH_YPC@HON.ADD <2050:4 2050:4>= .0004 ;
+smooth SH_YPC@HON.ADD = SH_YPC@HON.ADD LINEAR;
+
+
+YMEDC@HON.ADD <2018:1 2050:4>=  .9, .7, .6, .5, -.2, .1, .4, .3, -.01 rep *;
+
+//SERIES <2019:4 2050:4> RMORT@US.ADD =  .1;
+RMORT@US.ADD <2020:1 2050:4>=  .0, -.03, -.02, .0, .025, .025;
+RMORT@US.ADD <2050:4 2050:4>= .0;
+smooth RMORT@US.ADD = RMORT@US.ADD LINEAR;
+
+
+// *** MEDIAN HOME/CONDO PRICES ON OAHU ***
+//                                            20                    21              22           23            24 
+PMKBSGF@HON.ADD <2020:1 2050:4>=    -22, -3, -1.5, -1.3,  -2.75 rep 4,  -6 rep 4,  -6 rep 4, -5 rep 4,  -5 rep 4, -3 rep 8, -1 rep 4;   
+
+//                                          20               21              22-23          24           25
+PMKBCON@HON.ADD <2020:1 2049:4>=   -5, -4, -4, -4,  -1 rep 4,  -1 rep 8, -1.25 rep 4, -1 rep * ;
+
+
+// ################ HIGH
+if ('{%nCovHIGH}'=='Y');
+//                                          20                   21                  22            23              24            25 
+PMKBSGF@HON.ADD <2020:1 2050:4>=   -22, -16, -15, -10,  75, -20, -15, -0,  -8 rep 4,  -7 rep 4, -6 rep 4,   -6 rep *;   
+//                                          20                  21            22             23          24           25
+PMKBCON@HON.ADD <2020:1 2049:4>=   -5, -11, -11, -15,  0 rep 4,  5 rep 4,   -3 rep 4, -1 rep * ;
+END; // end if nCovHIGH = Y
+
+
+// ################ BASE
+if ('{%nCovBase}'=='Y');
+//                                          20                   21                   22             23              24            25 
+PMKBSGF@HON.ADD <2020:1 2050:4>=   -22, -16, -15, -10,  105, -20, -15, -12,  -13 rep 4,  -7 rep 4, -5 rep 4,   -4 rep 4, -5;   
+PMKBSGF@HON.ADD <2035:1 2035:4>=  -3;
+PMKBSGF@HON.ADD <2050:4 2050:4>=  -10;
+smooth PMKBSGF@HON.ADD = PMKBSGF@HON.ADD LINEAR;
+//                                          20                   21                    22             23          24           25
+PMKBCON@HON.ADD <2020:1 2049:4>=   -5, -11, -11, -15,   2 rep 4,           1 rep 4,   -1 rep 4, -1 rep 4, 0 rep * ;
+END; // end if nCovBase = Y
+
+//!!!! ###### LOW home price
+if ('{%nCovLow}'=='Y');
+//                                          20                   21                  22            23              24            25 
+PMKBSGF@HON.ADD <2020:1 2050:4>=   -22, -16, -15, -10,  75, -20, -15, -0,  -8 rep 4,  -7 rep 4, -6 rep 4,   -6 rep *;   
+//                                          20                  21            22             23          24           25
+PMKBCON@HON.ADD <2020:1 2049:4>=   -5, -11, -11, -15,  0 rep 4,  5 rep 4,   -3 rep 4, -1 rep * ;
+//
+END; // end if nCovLow = Y
+
+
+
+// *** RESALES ***
+KRSGF@HI.ADD <2007:1 2050:4>=    0 rep 10, 10 rep 4; 
+KRSGF@HI.ADD <2050:1 2050:4>=    500 rep 4; 
+smooth KRSGF@HI.ADD = KRSGF@HI.ADD LINEAR;
+
+// *** NON RESIDENTIAL PERMITS ***            20                 21
+//SERIES <2020:1 2050:4> KPPRVNRSD_R@HI.ADD =  1, -15, 13, -1;
+//SERIES <2035:4 2035:4> KPPRVNRSD_R@HI.ADD =  6 ;
+//SERIES <2050:4 2050:4> KPPRVNRSD_R@HI.ADD =  1.5 ;
+//SMOOTH KPPRVNRSD_R@HI.ADD = KPPRVNRSD_R@HI.ADD LINEAR;
+
+// *** RESIDENTIAL PERMITS ***		       19Q4  20              21               22              23           24         25        26
+KPPRVRSD_R@HI.ADD <2019:4 2050:4>= -1,   2, 10, 3, -5,   -6, -1, -4, -8,  -7, -5 rep 3,  -5 rep 4, -3 rep 4, 0 rep 4,   4 rep 4, 8 rep 8 ;
+
+//!!!!!!!   simulation to close Housing Gap
+//SERIES <2017:1 2050:4>   RSDGAP.add =  50 repeat 20;
+//SERIES KPPRVRSD_R@HI.ADD = KPPRVRSD_R@HI.ADD + RSDGAP.ADD;  
+
+// *** GOV PERMITS ***  					19Q3    20              21	
+KPGOV_R@HI.ADD <2019:3 2050:4>= 0, 0,   7, 26, 35, 45,  35, 30, 20, 10, 5, 0;
+KPGOV_R@HI.ADD <2025:4 2025:4>=  0;
+KPGOV_R@HI.ADD <2030:4 2030:4>=  0;
+KPGOV_R@HI.ADD <2050:4 2050:4>=  0;
+smooth KPGOV_R@HI.ADD = KPGOV_R@HI.ADD LINEAR;
+
+// *** CONSTRUCTION COST INDEX ***          20              21 
+//SERIES <2020:1 2050:4>  PICTSGF@HON.ADD =  -5 repeat 4, -.5;
+//SERIES <2050:4 2050:4>  PICTSGF@HON.ADD = -1.5;
+//SMOOTH PICTSGF@HON.ADD = PICTSGF@HON.ADD LINEAR;
+
+// *** CONTRACTING JOBS ***
+//                                      19Q1                  2020                2021           2022           2023-2024     2025           2027-8         2029-30
+ECT@HI.ADD <2019:1 2050:4>=    1.3, 1.4, 1.5, 1.5,   1.6, 1.2, 1, .8,  .9 rep 4,   .7 rep 4,    .7 rep 8,  .8 rep 4,   .6 rep 8,  .3 rep 8, .1 rep *;
+//		 				               2019          	    2020                  2021          2022           23-24
+ECT@HON.ADD <2019:1 2050:4>=  .08, .08, .06, .03,   .04,  .04, 0.05, .05,  .04,  .0 rep 4, .0 rep 4,  .025 rep 8, .06 rep 4, .01 rep *;
+
+// *** TAX ***                            19Q1                               20
+TGBCT@HI.ADD <2019:1 2050:4>=    185000, 150000, 130000, 110000,  -4000 rep 4,  -6000 rep *;
+
+// *** INCOME ***
+YL_CTMI_R@HI.ADD <2019:1 2050:4>=  7, 5, 6, 6, 6 rep 3, 6, 4 rep 4, 0 rep 4, -1 rep 4 ;   
+YL_CTMI_R@HI.ADD <2050:1 2050:4>=  0 rep *;
+smooth YL_CTMI_R@HI.ADD = YL_CTMI_R@HI.ADD LINEAR;
+
+
+// ################ HIGH ************ CONTRACTING
+if ('{%nCovHIGH}'=='Y');  //              20             21                    22
+//NON RES
+//SERIES <2020:1 2050:4> KPPRVNRSD.pan =  0 repeat 4,   15, -30, -35, 0,      7, 3 repeat 3, 1 repeat 4, 0 repeat *; 
+//SERIES <2020:1 2050:4> KPPRVNRSD_R@HI.ADD =  KPPRVNRSD_R@HI.ADD + KPPRVNRSD.pan;
+KPPRVNRSD_R@HI.ADD <2020:1 2050:4>=  1, -15,13,-1, 14, -30.8,-35.7,-0.5,  6.6, 2.7, 2.8,2.9,  1,1.2,1.3,1.4, 0.5,0.6,0.8,0.9, 1, 1.10,1.2,1.3; 
+KPPRVNRSD_R@HI.ADD <2028:4 2028:4>=  0;
+KPPRVNRSD_R@HI.ADD <2035:4 2035:4>=  1.5;
+KPPRVNRSD_R@HI.ADD <2045:4 2045:4>=  .75; 
+KPPRVNRSD_R@HI.ADD <2050:4 2050:4>=  1;
+smooth <2020:1 2050:4> KPPRVNRSD_R@HI.ADD =  KPPRVNRSD_R@HI.ADD;
+
+// RESIDENTIAL 						  20              21                     22
+KPPRVRSD.pan <2020:1 2050:4>= -5 rep 4,    5, -10, -40, -7,     -16 rep 4, -12 rep 4, -8 rep 4, -6 rep *; 
+KPPRVRSD_R@HI.ADD <2020:1 2050:4>=  KPPRVRSD_R@HI.ADD + KPPRVRSD.pan;
+
+//GOV                                     20Q1        21             22             23             24             25
+KPGOV_R@HI.ADD <2020:1 2050:4>= 7,29,35,25, 125,100,30,15,  30,25,25,25,  -30 rep 4, -25 rep 4, -15 rep 4;  
+KPGOV_R@HI.ADD <2050:4 2050:4>= 0;
+smooth KPGOV_R@HI.ADD = KPGOV_R@HI.ADD LINEAR;
+
+//JOBS                                  20Q2             21                  22                       23
+ECT@HI.pan <2020:2 2050:4>=   -4.5, 1.6, 1.2,   .9, .7, .6, .2,       .15, .15, .2, .4,         .3 rep 4,       .3 rep *;
+ECT@HI.ADD <2020:1 2050:4>=  ECT@HI.ADD + ECT@HI.pan;
+//                                      20Q2             21                    22                        23
+ECT@HON.pan <2020:2 2050:4>= -3.7, 2.1, 1.2,    -.1, .02, -.55, .25,  -.05, -.05, -.05, -.05,   .1, .0 rep 3,  -0.01 rep  *;
+ECT@HON.ADD <2020:1 2050:4>=  ECT@HON.ADD + ECT@HON.pan;
+
+// *** INCOME ***
+YL_CTMI_R@HI.ADD <2020:1 2050:4>=  4, 6, -6, -6, -.5 rep 4, 0 rep 4, -.5 rep 4 ;   
+YL_CTMI_R@HI.ADD <2050:1 2050:4>=  0 rep *;
+smooth YL_CTMI_R@HI.ADD = YL_CTMI_R@HI.ADD LINEAR;
+
+// *** CONSTRUCTION COST INDEX ***          20              21 
+PICTSGF@HON.ADD <2020:1 2050:4>=  -3 rep 4, -.5 rep 4;
+//SERIES <2050:4 2050:4>  PICTSGF@HON.ADD = -1.5;
+//SMOOTH PICTSGF@HON.ADD = PICTSGF@HON.ADD LINEAR;
+//
+END; // end if nCovHIGH = Y
+
+
+// ################ BASE ************ CONTRACTING
+if ('{%nCovBase}'=='Y');  
+//NON RES                                     20            21                     22                  23             24               25
+KPPRVNRSD_R@HI.ADD <2020:1 2050:4>=  1, -15,13,-1, 14, -30.8,-35.7,-0.5,  6.6, 2.7, 2.8,2.9,  1,1.2,1.3,1.4, 0.5,0.6,0.8,0.9, 1, 1.10,1.2,1.3; 
+KPPRVNRSD_R@HI.ADD <2028:4 2028:4>=  0;
+KPPRVNRSD_R@HI.ADD <2035:4 2035:4>=  1.5;
+KPPRVNRSD_R@HI.ADD <2045:4 2045:4>=  .75; 
+KPPRVNRSD_R@HI.ADD <2050:4 2050:4>=  1;
+smooth <2020:1 2050:4> KPPRVNRSD_R@HI.ADD =  KPPRVNRSD_R@HI.ADD;
+
+// RESIDENTIAL 						  20              21                     22                  23
+KPPRVRSD.pan <2020:1 2050:4>= -5 rep 4,    5, -10, -40, -7,     -16, -15, -14, -12,  -6 rep 4,  -6 rep 4, -8 rep *; 
+KPPRVRSD_R@HI.ADD <2020:1 2050:4>=  KPPRVRSD_R@HI.ADD + KPPRVRSD.pan;
+
+//GOV                                     20Q1        21             22             23             24             25
+KPGOV_R@HI.ADD <2020:1 2050:4>= 7,29,35,25, 125,100,30,15,  30,25,25,25,  -30 rep 4, -25 rep 4, -15 rep 4;  
+KPGOV_R@HI.ADD <2050:4 2050:4>= 0;
+smooth KPGOV_R@HI.ADD = KPGOV_R@HI.ADD LINEAR;
+
+//JOBS                                  20Q2             21                  22                       23                 24
+ECT@HI.pan <2020:2 2050:4>=   -4.5, .5, .5,    .9, 1, .8, .5,      .05, .1, .1, .2,         .33 rep 4,       .3 rep 4;
+//SERIES <2030:4 2030:4> ECT@HI.PAN = .3;
+//SERIES <2040:4 2040:4> ECT@HI.PAN = .5;
+ECT@HI.PAN <2050:4 2050:4>= .3;
+smooth ECT@HI.PAN = ECT@HI.PAN LINEAR;
+ECT@HI.ADD <2020:1 2050:4>=  ECT@HI.ADD + ECT@HI.pan;
+//                                      20Q2             21                  22                       23
+ECT@HON.pan <2020:2 2050:4>= -3.7, 1.5, .8,   .45, .4, -.4, .17,  -.17, -.11, -.1, -.05,     .12, .0 rep 3,  0.01 rep 4, .0 rep *;
+ECT@HON.ADD <2020:1 2050:4>=  ECT@HON.ADD + ECT@HON.pan;
+
+// *** INCOME ***
+YL_CTMI_R@HI.ADD <2020:1 2050:4>=  4, 6, -6, -6, -.5 rep 4, 0 rep 4, -.5 rep 4 ;   
+YL_CTMI_R@HI.ADD <2050:1 2050:4>=  0 rep *;
+smooth YL_CTMI_R@HI.ADD = YL_CTMI_R@HI.ADD LINEAR;
+
+// *** CONSTRUCTION COST INDEX ***          20              21 
+PICTSGF@HON.ADD <2020:1 2050:4>=  -3 rep 4, -.5 rep 4;
+PICTSGF@HON.ADD <2030:4 2030:4>= 0;
+PICTSGF@HON.ADD <2040:4 2040:4>= -.5;
+PICTSGF@HON.ADD <2050:4 2050:4>= -.5;
+smooth PICTSGF@HON.ADD = PICTSGF@HON.ADD LINEAR;
+//
+END; // end if nCovBase = Y
+
+// ################ LOW ************ CONTRACTING
+if ('{%nCovLow}'=='Y');  //              20             21                    22
+//NON RES
+KPPRVNRSD_R@HI.ADD <2020:1 2050:4>=  1, -15,13,-1, 14.1, -30.8,-35.7,-0.5,  6.6, 2.7, 2.8,2.9,  1,1.2,1.3,1.4, 0.5,0.6,0.8,0.9, 1, 1.10,1.2,1.3; 
+KPPRVNRSD_R@HI.ADD <2028:4 2028:4>=  0; //2.7
+KPPRVNRSD_R@HI.ADD <2035:4 2035:4>=  1.5; //6
+KPPRVNRSD_R@HI.ADD <2045:4 2045:4>=  .75; //3
+KPPRVNRSD_R@HI.ADD <2050:4 2050:4>=  1; //1.5
+smooth <2020:1 2050:4> KPPRVNRSD_R@HI.ADD =  KPPRVNRSD_R@HI.ADD;
+
+// RESIDENTIAL 						  20              21                     22
+KPPRVRSD.pan <2020:1 2050:4>= -5 rep 4,    5, -10, -40, -7,     -16 rep 4, -12 rep 4, -8 rep 4, -6 rep *; 
+KPPRVRSD_R@HI.ADD <2020:1 2050:4>=  KPPRVRSD_R@HI.ADD + KPPRVRSD.pan;
+
+//GOV                                     20Q1        21             22             23             24             25
+KPGOV_R@HI.ADD <2020:1 2050:4>= 7,29,35,25, 125,100,30,15,  30,25,25,25,  -30 rep 4, -25 rep 4, -15 rep 4;  
+KPGOV_R@HI.ADD <2050:4 2050:4>= 0;
+smooth KPGOV_R@HI.ADD = KPGOV_R@HI.ADD LINEAR;
+
+//GOV                                 2020             21               22
+//SERIES <2020:1 2050:4> KPGOV.pan =   0, 3, 0, -20,    90, 70, 10, 5,   25 repeat 4, -30 repeat 4, -25 REPEAT 4,  -15 repeat *; 
+//SERIES <2020:1 2050:4> KPGOV_R@HI.ADD =  KPGOV_R@HI.ADD + KPGOV.pan;
+
+//JOBS                                  20Q2             21                  22                       23
+ECT@HI.pan <2020:2 2050:4>=   -4.5, .5, .5,    .9, 1, 1, .6,       .15, .15, .2, .4,         .3 rep 4,       .3 rep *;
+ECT@HI.ADD <2020:1 2050:4>=  ECT@HI.ADD + ECT@HI.pan;
+//                                      20Q2             21                  22                       23
+ECT@HON.pan <2020:2 2050:4>= -3.7, 1.5, .8,   .45, .4, -.4, .17,  -.17, -.11, -.1, -.05,     .15, .0 rep 3,  -0.05 rep 4, -.02 rep *;
+ECT@HON.ADD <2020:1 2050:4>=  ECT@HON.ADD + ECT@HON.pan;
+
+// *** INCOME ***
+YL_CTMI_R@HI.ADD <2020:1 2050:4>=  4, 6, -6, -6, -.5 rep 4, 0 rep 4, -.5 rep 4 ;   
+YL_CTMI_R@HI.ADD <2050:1 2050:4>=  0 rep *;
+smooth YL_CTMI_R@HI.ADD = YL_CTMI_R@HI.ADD LINEAR;
+
+// *** CONSTRUCTION COST INDEX ***          20              21 
+PICTSGF@HON.ADD <2020:1 2050:4>=  -3 rep 4, -.5 rep 4;
+//SERIES <2050:4 2050:4>  PICTSGF@HON.ADD = -1.5;
+//SMOOTH PICTSGF@HON.ADD = PICTSGF@HON.ADD LINEAR;
+
+END; // end if nCovLow = Y
+
+
+
+
+
+//goto taxskip;
+//***************************** TAXES
+// 
+//pause;
+time 1980:1 2050:4;
+option freq m;
+//!! fill in missing months
+
+TDGFTEMP!m = tdgfns@hi!m;
+tdgftemp!m <2010:1 2020:6>= tdgfns@hi!m;
+tdgftemp!m <2020:1 2020:6>= 845534.4, 503444, 441968.19, 540185, 424346, 352428; // -- submitted
+//series <2020:1 2020:6> tdgftemp.m = 845534.4, 503444, 441968.19, 540185, 317027, 266999;   ! -- based on new calcs
+prt <2019:6 2020:6> tdgfns@hi!m, tdgftemp!m, pchya(tdgftemp!m);
+
+option freq q;
+option calendar collapse total;
+option calculation missing 0;
+work:tdgftemp!q = TDGFTEMP!m;
+option calculation missing 0;
+
+work:tdgf@hi!q = tax:tdgf@hi!q;
+
+work:tdgf@hi!q <2020:1 2020:2>= work:tdgf@hi.4*(1+PCHYA(tdgftemp!q)/100);
+prt <2019 2022> work:tdgf@hi!q, tax:tdgf@hi!q, pchya(work:tdgf@hi!q);
+
+option report column 10; /* TRANSLATE: 'set report ...': use 'option print fields...' instead. */ 
+prt <2018 2022> tax:tdgfns@hi!q/1000, work:tdgftemp!q/1000, pchya(tdgftemp!q), pchya(work:tdgf@hi!q);
+
+time 2000 2022; prt <Format=ROWS Shift Yearend=2019:2 Showend> TDGF@HI!Q/1000, PCHYA(TDGF@HI!Q) Width=8 Convert=TOTAL Annual;
+
+//pause;
+time 1980:1 2050:4;
+target taxskip;
+
+//                                      20Q3           2021
+tdgf@hi.add <2020:3 2050:4>=  55000, 65000, 110000, 150000, 0, 0, -9000 rep *;
+//series <2050:4 2050:4> tdgf@hi.add  =  0 repeat *;
+//smooth tdgf@hi.add = tdgf@hi.add linear; 
+
+
+
+//***************    AGRICULTURE    ********************************************
+
+//                                       17
+YLAG_R@HI.ADD <2019:1 2050:4>=  0;
+YLAG_R@HI.ADD <2050:4 2050:4>= 0;
+smooth YLAG_R@HI.ADD =  YLAG_R@HI.ADD LINEAR;
+
+//                                       19--- nbi income ends 1 yr before state
+YLAG_R@NBI.ADD <2019:1 2050:4>= -.5 rep 4, -.5 rep 4, .0 rep 4, 0 rep *;
+
+
+YPJAG_R@HI.ADD <2011:1 2050:4>= .5 rep 4;
+YPJAG_R@HI.ADD <2050:1 2050:4>= 3 rep 4;
+smooth YPJAG_R@HI.ADD = YPJAG_R@HI.ADD LINEAR;
+
+YPJAG_R@NBI.ADD <2011:1 2050:4>= .15 rep 4;
+YPJAG_R@NBI.ADD <2050:1 2050:4>= .12 rep 4;
+smooth YPJAG_R@NBI.ADD = YPJAG_R@NBI.ADD LINEAR;
+
+// ############### HIGH
+if ('{%nCovHIGH}'=='Y');  //              20Q1                   21           22
+YLAG_R@HI.ADD <2020:1 2050:4>=  -7, -14, -9, 0,     6, 4, 3, 3,   3 rep 4, .25 rep 4, 0 rep *;
+
+YLAG_R@NBI.ADD <2020:1 2050:4>=  2 rep 4,         -2 rep 4, -.6 rep 4, .25 rep 4, .05 rep *;
+
+END; // end if nCovHIGH = Y
+
+// ############### BASE
+if ('{%nCovBase}'=='Y');  //              20Q1                   21           22
+YLAG_R@HI.ADD <2020:1 2050:4>=  -7, -14, -9, 0,     6, 4, 3, 3,   3 rep 4, .25 rep 4, 0 rep *;
+
+YLAG_R@NBI.ADD <2020:1 2050:4>=  2 rep 4,         -2 rep 4, -.6 rep 4, .25 rep 4, .05 rep *;
+
+END; // end if nCovBase = Y
+
+// ############### LOW 
+if ('{%nCovLow}'=='Y');  //              20Q1                   21           22
+YLAG_R@HI.ADD <2020:1 2050:4>=  -7, -14, -9, 0,     6, 4, 3, 3,   3 rep 4, .25 rep 4, 0 rep *;
+
+YLAG_R@NBI.ADD <2020:1 2050:4>=  2 rep 4,         -2 rep 4, -.6 rep 4, .25 rep 4, .05 rep *;
+
+END; // end if nCovLow = Y
+
+
+
+//***************    MANUFACTURING    ******************************************
+
+//                                    20Q1
+EMN@HI.ADD <2020:1 2050:4>= .08 rep *;
+//                                    20Q1                  20Q2
+EMN@NBI.ADD <2020:1 2050:4>= .02, -.05, .05, .03,  .023 rep 4, .023 rep *;
+
+
+//!!! this equation needs to be respecified!
+//                                       18
+YLMN_R@HI.ADD <2019:3 2050:4>=   -9, -8, -8.7;
+//SERIES <2029:4 2029:4> YLMN_R@HI.ADD =  -9.8;
+YLMN_R@HI.ADD <2050:4 2050:4>=  -12;
+smooth YLMN_R@HI.ADD =  YLMN_R@HI.ADD LINEAR;
+
+if ('{%nCovBase}'=='Y' or '{%nCovLow}'=='Y' or '{%nCovHIGH}'=='Y');
+//                                    20Q2           2021             22
+EMN@HI.pan <2020:2 2050:4>= -3.1, .9, .6,  .25 rep 4,    .05 rep 4, .0 rep *;
+EMN@HI.ADD <2020:1 2050:4>=   EMN@HI.ADD + EMN@HI.pan;
+
+EMN@NBI.pan <2020:2 2050:4>= -.65, .15, .17,  .07 rep 4, .015 rep 4, .0 rep  *;
+EMN@NBI.ADD <2020:1 2050:4>=   EMN@NBI.ADD + EMN@NBI.pan;
+
+//                                      20Q1           2021           2022               2023
+YLMN_R@HI.pan <2020:1 2050:4>= 0, 1, 7, 6,    2, 18, 1, -1,  .1, .1, .1, .2,   .7 rep 8, .5 rep 4;
+YLMN_R@HI.PAN <2030:1 2030:4>= .1 rep 4;
+YLMN_R@HI.PAN <2040:1 2040:4>= .0 rep 4;
+YLMN_R@HI.PAN <2045:1 2045:4>= -.25 rep 4;
+YLMN_R@HI.PAN <2050:1 2050:4>= -.15 rep 4;
+smooth YLMN_R@HI.PAN = YLMN_R@HI.PAN LINEAR;
+YLMN_R@HI.ADD <2020:1 2050:4>=   YLMN_R@HI.ADD + YLMN_R@HI.pan;
+END; // end if nCovBase = Y
+
+
+
+
+
+
+//***************    NON LABOR INCOME    ***************************************
+
+// SOCIAL SECURITY TAX EQUATION IS NOW BEHAVIORAL AND MUST BE RE-ESTIMATED EVERY YEAR
+
+YSOCSEC@HI.ADD <2017:2 2050:4>=  -1;
+YSOCSEC@HI.ADD <2050:4 2050:4>=  50 rep 4;
+smooth YSOCSEC@HI.ADD = YSOCSEC@HI.ADD LINEAR;
+
+//                                       19
+YDIV_R@HI.ADD <2019:3 2050:4>=  70, 65, 85, 85, 85, 80;
+//SERIES <2025:1 2025:4> YDIV_R@HI.ADD =  60 ;
+//SERIES <2035:1 2035:4> YDIV_R@HI.ADD =  -10;
+YDIV_R@HI.ADD <2050:1 2050:4>= -75 rep *;
+smooth YDIV_R@HI.ADD = YDIV_R@HI.ADD LINEAR;
+
+// ################  DIvHIGH
+if ('{%nCovHIGH}'=='Y');  
+//                                        2020                  21                     22                 23  
+//SERIES <2020:1 2050:4> YDIV_R@HI.pan =  -40,  -150, -80, 30,   350, -180, -150, -80,  -60, -30, -5, -0,  5 repeat 4, 5 repeat *; 
+YDIV_R@HI.pan <2020:1 2050:4>=  -40,  -150, -80, 30,   350, -180, -150, -100,  -110, -40, -5, -0,  5 rep 4, 5 rep *; YDIV_R@HI.ADD <2020:1 2050:4>=  YDIV_R@HI.ADD + YDIV_R@HI.pan;
+END; // end if nCovBase = Y
+
+// ################  DivBASE
+if ('{%nCovBase}'=='Y');  
+//                                        2020                  21                      22                   23           24
+YDIV_R@HI.pan <2020:1 2050:4>=  -40,  -150, -80, 30,   360, -80, -130, -110,  -140, -80, -60, -40, -10 rep 4, -15 rep 4, -5 rep *; 
+YDIV_R@HI.ADD <2020:1 2050:4>=  YDIV_R@HI.ADD + YDIV_R@HI.pan;
+END; // end if nCovBase = Y
+
+// ################  DivLOW
+if ('{%nCovLow}'=='Y');  
+//                                        2020                  21                      22                   23            24             25
+YDIV_R@HI.pan <2020:1 2050:4>=  -40,  -150, -80,  30,   360, -80, -130, -100,  -150, -90, -70, -50, -10 rep 4, -15 rep 4, -5 rep 4, -10 rep 4, -15 rep 4, -20 rep *; 
+YDIV_R@HI.ADD <2020:1 2050:4>=  YDIV_R@HI.ADD + YDIV_R@HI.pan;
+//
+END; // end DivLOW
+
+//					                       2017
+YTRNSF_R@HI.ADD <2019:3 2050:4>=  -10, -5, 25, 20, 15, 4;  
+YTRNSF_R@HI.ADD <2050:4 2050:4>= -17;
+smooth YTRNSF_R@HI.ADD = YTRNSF_R@HI.ADD LINEAR;
+
+//                                   19Q1
+YS@HI.ADD <2019:1 2050:4>=  -200, -150 rep 3, 0 rep 4, -50 rep 4, -60 rep *;
+//-80 REPEAT 4, -10 REPEAT 4;
+
+
+// ###################  HIGH
+if ('{%nCovHIGH}'=='Y');  //           2020                   21            22
+//SERIES <2020:1 2050:4> YS@HI.pan = -30,  -750, -450, 100,  00 repeat 4,  1 repeat *; 
+//SERIES <2020:1 2050:4> YS@HI.ADD =  YS@HI.ADD + YS@HI.pan;
+
+// transfer payments shock
+
+YTRNSF_URonly <2020:1 2050:4>= 200,  1730, -2080, -30,    20, 1 rep 4,  1 rep *; 
+YTRNSF_R@HI.ADD <2020:1 2050:4>=  YTRNSF_R@HI.ADD + YTRNSF_URonly;
+
+// TAX Rebates see ITEP.org               20Q1                    21
+YTRNSF_R@HI.pan <2020:1 2050:4>=  0,  765, 0, -935,     45,  5.5 rep 4,  1 rep *; 
+YTRNSF_R@HI.ADD <2020:1 2050:4>=  YTRNSF_R@HI.ADD + YTRNSF_R@HI.pan;
+END; // end if nCovHIGH = Y
+
+
+// ###################  TRNSFBASE
+if ('{%nCovBase}'=='Y');  //           2020                   21            22
+//SERIES <2020:1 2050:4> YS@HI.pan = -30,  -750, -450, 100,  00 repeat 4,  1 repeat *; 
+//SERIES <2020:1 2050:4> YS@HI.ADD =  YS@HI.ADD + YS@HI.pan;
+
+// transfer payments shock
+
+YTRNSF_URonly <2020:1 2050:4>= 200,  1730, -2080, -30,    20, 1 rep 4,  1 rep *; 
+YTRNSF_R@HI.ADD <2020:1 2050:4>=  YTRNSF_R@HI.ADD + YTRNSF_URonly;
+
+// TAX Rebates see ITEP.org               20Q1                    21                 22-24
+YTRNSF_R@HI.pan <2020:1 2050:4>=  0,  765, 0, -935,     45,  5.5 rep 4,  1 rep 12, -20 rep 4, -40 rep 4; 
+YTRNSF_R@HI.pan <2030:1 2030:4>= -10 rep 4;
+YTRNSF_R@HI.pan <2040:1 2040:4>= -3 rep 4;
+YTRNSF_R@HI.pan <2050:1 2050:4>= -0 rep 4;
+smooth YTRNSF_R@HI.pan = YTRNSF_R@HI.pan LINEAR;
+
+YTRNSF_R@HI.ADD <2020:1 2050:4>=  YTRNSF_R@HI.ADD + YTRNSF_R@HI.pan;
+END; // end if nCovBase = Y
+
+
+// ###################  LOW
+if ('{%nCovLow}'=='Y');  //           2020                   21            22
+//SERIES <2020:1 2050:4> YS@HI.pan = -30,  -750, -450, 100,  00 repeat 4,  1 repeat *; 
+//SERIES <2020:1 2050:4> YS@HI.ADD =  YS@HI.ADD + YS@HI.pan;
+
+// transfer payments shock
+
+YTRNSF_URonly <2020:1 2050:4>= 200,  1730, -2080, -30,    20, 1 rep 4,  1 rep *; 
+YTRNSF_R@HI.ADD <2020:1 2050:4>=  YTRNSF_R@HI.ADD + YTRNSF_URonly;
+
+// TAX Rebates see ITEP.org               20Q1                    21
+YTRNSF_R@HI.pan <2020:1 2050:4>=  0,  765, 0, -935,     45,  5.5 rep 4,  1 rep 12, -30 rep 4, -40 rep 4; 
+YTRNSF_R@HI.pan <2030:1 2030:4>= -10 rep 4;
+YTRNSF_R@HI.pan <2040:1 2040:4>= -3 rep 4;
+YTRNSF_R@HI.pan <2050:4 2050:4>= 0;
+smooth YTRNSF_R@HI.pan = YTRNSF_R@HI.pan LINEAR;
+YTRNSF_R@HI.ADD <2020:1 2050:4>=  YTRNSF_R@HI.ADD + YTRNSF_R@HI.pan;
+
+
+END; // end if nCovLow = Y
+
+
+
+//!********************************************************************************
+//!   CALCULATE HISTORY OF REAL INCOME    !!!CPI@HON.SOL MUST BE IN QSOL.BNK (running solQ twice) !!!
+//!********************************************************************************
+//!PROBLEM: The ending period of CPI may be before the ending period of nominal income
+//!As a result, the history of real income would end before the nominal income.
+//
+
+if ('{%CPIFIX}'=='Y');
+
+open<> {%SOLBNK};
+%nom_end = y@hi!q per2;
+%real_end = y_r@hi!q per2;
+
+//TELL '**********************************  nomial end #NOM_END'; 
+//TELL '**********************************  REAL END = #REAL_END'; 
+
+if ('{%nom_end}'<>'{%real_end}');
+  %avail = {%SOLBNK}:CPI@HON.SOL;
+//TELL '**********************************  nomial end #NOM_END'; 
+//TELL '**********************************  REAL END = #REAL_END'; 
+  if ('{%avail}'=='1');
+    index <showbank=no showfreq=no> {'y*_r@hi!q'} to #allreal; /* TRANSLATE: {'...'}-braces mandatory, will be fixed */
+    for string %myvar = #allreal; /* TRANSLATE: Check that string type is ok */
+      %serslength = length('{%myvar}');        
+      %piece1 = piece('{%myvar}',1,search('{%myvar}','@')-3); //anything before _R@ -> This approach is better than using strip('_R') since other series MAY have _R, which doesn't mean real.
+      %piece2 = piece('{%myvar}',search('{%myvar}','@'),%serslength);
+      %mynom = concat('{%piece1}','{%piece2}');
+      work:{%myvar} = {%BEABNK}:{%myvar}!q;
+      option databank modify extend; //If the program stops at the next line, this set-databank command is going to change your default. 
+      work:{%myvar}!q = {%BEABNK}:{%mynom}!q / {%SOLBNK}:cpi@hon.sol * 100;
+      option databank modify update;
+    end;
+  end;
+end;
+close {%SOLBNK}; //bank must be closed before solving the model
+END;  //  END CPIFIX;
+//
+//NOTE: not using this because the model is solved faster when cpi is imposed (using imposeCPI.cmd) 
+
+if ('{%PICTFIX}'=='Y');
+
+open<> {%SOLBNK};
+%nom_end = KPPRVRSD@hi!q per2;
+%real_end = KPPRVRSD_r@hi!q per2;
+if ('{%nom_end}'<>'{%real_end}');
+  %avail = {%SOLBNK}:PICTSGF@HON.SOL;
+  if ('{%avail}'=='1');
+    index <showbank=no showfreq=no> {'KP*_r@hi!q'} to #allreal; /* TRANSLATE: {'...'}-braces mandatory, will be fixed */
+    for string %myvar = #allreal; /* TRANSLATE: Check that string type is ok */
+      %serslength = length('{%myvar}');        
+      %piece1 = piece('{%myvar}',1,search('{%myvar}','@')-3); //anything before _R@ -> This approach is better than using strip('_R') since other series MAY have _R, which doesn't mean real.
+      %piece2 = piece('{%myvar}',search('{%myvar}','@'),%serslength);
+      %mynom = concat('{%piece1}','{%piece2}');
+      work:{%myvar} = MISC:{%myvar}!q;
+      option databank modify extend; //If the program stops at the next line, this set-databank command is going to change your default. 
+      work:{%myvar} = MISC:{%mynom}!q / {%SOLBNK}:PICTSGF@hon.sol * 100;
+      option databank modify update;
+    end;  // END FOR MYVAR
+  end;   // END IF AVAIL
+end;    //  END IF NOMEND
+close {%SOLBNK}; //bank must be closed before solving the model
+END;  //  END CPIFIX;
+
+target THEEND;
+
+option SAVEFILE SAVE NO; /* TRANSLATE: 'set savefile ...': use 'PIPE' and 'PIPE con' instead. */
+
+//TELL "**********************************  HIGH =  #nCovHigh"; 
+//TELL "**********************************  BASE =  #nCovBase"; 
+//TELL "**********************************  LOW  =  #nCovLOW"; 
+
+

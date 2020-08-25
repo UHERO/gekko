@@ -1,0 +1,110 @@
+ d(log(cpi_hon)) ~ d(log(pcen_hon)) + d(log(L(pcen_hon,2))) + d(log(pcfbfd_hon)) + d(log(L(pcfbfd_hon,4))) + d(log(pchssh_hon)) + log(L(cpi_hon,1)) + log(L(pcen_hon,1)) + log(L(pchssh_hon,1)) + dum_983 + trend
+ d(log(eaf_hi)) ~ d(log(vis_hi)) + d(log(L(vis_hi,1))) + log(L(eaf_hi,1)) + log(L(vis_hi,1)) + dum_014
+ d(log(eaf_hon)) ~ d(log(L(eaf_hon,2))) + d(log(vis_hi)) + d(log(L(vis_hi,1))) + log(L(eaf_hon,1)) + log(L(vis_hi,1)) + dum_014
+ eag_nbi ~ I(ylag_r_nbi/ypjag_r_nbi)
+ d(log(ect_hi)) ~ d(log(L(ect_hi,1))) + d(log(L(ect_hi,5))) + d(log(L(kp_r_hi,1))) + log(L(ect_hi,1)/L(nr_hi,1)) + log(L(kp_r_hi,1)) + I(dum_854-dum_844)
+ d(log(ect_hon)) ~ d(log(L(ect_hon,2))) + d(log(L(ect_hi,1))) + log(L(ect_hon,1)) + log(L(ect_hi,1)) + dum_781 + dum_843 + dum_844 + dum_851
+ d(log(egvfd_hi)) ~ d(log(L(egvfd_hi,5))) + d(log(L(y_r_hi,4))) + log(L(egvfd_hi,1)) + log(L(nrm_hi,1)) + log(L(y_r_hi,1)) + dum_002
+ d(log(egvfd_hon)) ~ d(log(L(egvfd_hon,1))) + d(log(egvfd_hi)) + d(log(L(egvfd_hi,1))) + dum_931 + dum_002 + dum_003
+ d(log(ehc_hi)) ~ d(log(L(e_hi,1))) + log(L(ehc_hi,1)) + log(L(nrcnm_hi,1)) + dum_743 + dum_744
+ d(log(ehc_nbi)) ~ d(log(L(ehc_nbi,1))) + d(log(L(ehc_nbi,4))) + d(log(L(ehc_nbi,5))) + d(log(L(e_nbi,2))) + log(L(ehc_nbi,1)) + log(L(nr_nbi,1))
+ d(log(emn_hi/nr_hi)) ~ d(log(L(emn_hi,2)/L(nr_hi,2))) + d(log(eag_hi/nr_hi)) + d(log(L(ect_hi,1))) + dum_931
+ d(log(emn_nbi/nr_nbi)) ~ d(log(L(emn_nbi,2)/L(nr_nbi,2))) + d(log(eag_nbi/nr_nbi)) + d(log(L(ect_nbi,1))) + dum_931
+ d(log(e_else_hi)) ~ d(log(L(e_else_hi,2))) + log(L(e_else_hi,1)/L(y_r_hi,1)) + log(L(nr_hi,1)) + dum_851 + dum_901
+ d(log(e_else_nbi)) ~ d(log(L(e_else_nbi,1))) + d(log(L(e_else_nbi,2))) + d(log(L(e_else_nbi,3))) + d(log(L(e_else_nbi,5))) + log(L(e_else_nbi,1)) + log(L(nr_nbi,1)) + dum_831 + dum_903
+ d(log(e_fir_hi)) ~ d(log(L(e_fir_hi,1))) + d(log(L(e_fir_hi,2))) + d(log(L(e_fir_hi,3))) + d(log(L(e_fir_hi,4))) + d(log(nr_hi)) + d(log(y_r_hi)) + dum_083 + dum_084 + dum_091 + dum_101 + dum_014 + dum_942 + dum_921 + dum_993 + dum_911
+ log(e_fir_nbi) ~ log(L(e_fir_nbi,1)) + log(e_fir_hi) + log(L(e_fir_hi,1))
+ d(log(e_gvsl_hi)) ~ d(log(L(e_gvsl_hi,4))) + d(log(L(e_gvsl_hi,5))) + log(L(e_gvsl_hi,1)) + log(L(nr_hi,1)) + dum_794 + dum_801
+ d(log(e_gvsl_hon)) ~ d(log(L(e_gvsl_hon,4))) + log(L(e_gvsl_hon,1)) + log(L(nr_hi,1)) + dum_794 + dum_801
+ e_nf_haw ~ e_nf_nbi*(L(e_nf_haw,1)/L(e_nf_nbi,1))*(nr_haw/nr_nbi)/(L(nr_haw,1)/L(nr_nbi,1))
+ e_nf_kau ~ e_nf_nbi*(L(e_nf_kau,1)/L(e_nf_nbi,1))*(nr_kau/nr_nbi)/(L(nr_kau,1)/L(nr_nbi,1))
+ d(log(e_trade_hi)) ~ d(log(L(e_trade_hi,1))) + d(log(vexp_hi/cpi_hon)) + d(log(L(vexp_hi,1)/L(cpi_hon,1))) + d(log(L(vexp_hi,2)/L(cpi_hon,2))) + d(log(y_r_hi/nr_hi)) + dum_014
+ d(log(e_trade_hon)) ~ d(log(L(e_trade_hon,3))) + d(log(L(vis_hi,1))) + d(log(L(vis_hi,3))) + d(log(L(y_r_hi,2)/L(nr_hi,2))) + dum_014
+ d(log(e_tu_hi)) ~ d(log(vis_hi)) + d(log(L(vis_hi,1))) + d(log(L(vis_hi,2))) + d(log(L(vis_hi,3))) + d(log(L(y_r_hi,2)/L(nr_hi,2))) + dum_014
+ d(log(e_tu_hon)) ~ d(log(vis_hi)) + d(log(L(vis_hi,1))) + d(log(L(vis_hi,2))) + d(log(L(vis_hi,3))) + d(log(L(y_r_hi,2)/L(nr_hi,2))) + dum_014
+ d(log(invsgfns_hon),4) ~ d(log(L(invsgfns_hon,1)),4) + d(log(L(invsgfns_hon,2)),4) + d(log(L(invsgfns_hon,3)),4) + d(log(L(invsgfns_hon,4)),4) + d(log(L(invsgfns_hon,5)),4) + d(log(L(e_nf_hi,4)),4) + d(log(L(pmkbsgf_hon,5))) + I(dum_042-dum_032) + dum_034
+ d(log(kpgov_r_hi)) ~ d(log(L(kpgov_r_hi,1))) + d(log(L(kpgov_r_hi,2))) + d(log(L(kpgov_r_hi,3))) + d(log(L(kpgov_r_hi,4))) + d(log(L(kpgov_r_hi,5))) + d(log(L(kpgov_r_hi,6))) + d(log(L(kpgov_r_hi,7))) + d(log(L(y_r_hi,1))) + d(log(L(y_r_hi,5)))
+ d(log(kpprvadd_hi)) ~ d(log(L(kpprvadd_hi,1))) + d(log(L(kpprvadd_hi,2))) + d(log(L(kpprvadd_hi,3))) + d(log(L(pmkbsgf_hon,4))) + d(ur_hi,4)
+ d(log(kpprvnrsd_r_hi)) ~ d(log(L(kpprvnrsd_r_hi,1))) + d(log(L(y_r_hi,2))) + d(log(L(y_r_hi,4))) + d(log(L(y_r_hi,5))) + I(dum_864-dum_863) + dum_884 + dum_834 + d(log(L(pictsgf_hon,4)))
+ kpprvrsd_r_hi ~ L(kpprvrsd_r_hi,1) + d(pmkbsgf_hon) + d(L(pmkbsgf_hon,3)) + d(L(pictsgf_hon,3))
+ d(log(krcon_hi)) ~ d(log(L(krcon_hi,2))) + d(log(L(krcon_hi,4))) + d(log(L(yl_r_hi,2))) + d(log(L(yl_r_hi,3))) + d(log(L(yl_r_hi,4))) + d(log(L(yl_r_hi,5))) + log(L(krcon_hi,1)) + log(L(yl_r_hi,1)) + log(L(pmkbcon_hon,1)/L(pafsgf_hon,1)) + dum_911
+ d(log(krsgf_hi)) ~ d(log(L(krsgf_hi,4))) + d(log(L(yl_r_hi,1))) + d(log(L(yl_r_hi,3))) + d(log(L(yl_r_hi,5))) + log(L(krsgf_hi,1)) + log(L(yl_r_hi,1)) + log(L(pmkbsgf_hon,1)/L(pafsgf_hon,1)) + dum_864 + dum_871 + dum_911
+ lf_haw ~ lf_nbi*(L(lf_haw,1)/L(lf_nbi,1))*(nr_haw/nr_nbi)/(L(nr_haw,1)/L(nr_nbi,1))
+ d(log(lf_hi)) ~ d(log(L(lf_hi,1))) + d(log(nr_hi))
+ lf_kau ~ lf_nbi*(L(lf_kau,1)/L(lf_nbi,1))*(nr_kau/nr_nbi)/(L(nr_kau,1)/L(nr_nbi,1))
+ d(log(lf_nbi)) ~ d(log(L(lf_nbi,1))) + d(log(nr_nbi))
+ nmigrcnm_hi ~ L(nmigrcnm_hi,1) + d(log(L(e_nf_hi,5)))
+ d(log(nrm_hi)) ~ d(log(L(nrm_hi,1))) + dum_734 + dum_974
+ d(log(pcen_hon)) ~ d(log(L(pcen_hon,3))) + d(log(poil_us)) + d(log(L(poil_us,1))) + d(log(L(poil_us,2))) + dum_811
+ d(log(pcfbfd_hon)) ~ d(log(L(pcfbfd_hon,1))) + d(log(L(pcfbfd_hon,2))) + d(log(L(pcfbfd_hon,3))) + d(log(L(cpi_us,3))) + d(log(L(cpi_us,4))) + d(log(L(cpi_us,5))) + d(log(L(yl_r_hi,2)))
+ d(log(pchssh_hon)) ~ d(log(L(pchssh_hon,1))) + d(log(L(yl_r_hi,1))) + d(log(L(yl_r_hi,2))) + log(L(pchssh_hon,1)) + log(L(pmkbsgf_hon,1)) + dum_831 + dum_833
+ d(log(pc_shfden_hon)) ~ d(log(L(pc_shfden_hon,1))) + d(log(L(pc_shfden_hon,3))) + d(log(L(cpi_us,1))) + dum_053
+ d(log(pictcon_hon)) ~ d(log(L(pictcon_hon,2))) + d(log(L(cpi_hon,5))) + d(log(L(yl_ctmi_r_hi,5)*L(cpi_hon,5)/L(ect_hi,5))) + dum_941 + dum_951 + dum_963 + trend
+ d(log(pictsgf_hon)) ~ d(log(L(pictsgf_hon,4))) + d(log(cpi_hon)) + d(log(L(cpi_hon,1))) + d(log(L(cpi_hon,2))) + dum_932 + I(dum_951-dum_941) + dum_963
+ d(log(pmkbcon_hon)) ~ d(log(L(pmkbcon_hon,5))) + d(log(L(pafsgf_hon,2))) + d(log(L(pmkbsgf_hon,2))) + d(log(L(pmkbsgf_hon,3))) + d(log(L(pmkbsgf_hon,4))) + log(L(pmkbcon_hon,1)/L(pafsgf_hon,1)) + dum_911 + dum_992
+ d(log(pmkbsgf_hon)) ~ d(log(L(pmkbsgf_hon,3))) + d(log(L(pmkbsgf_hon,4))) + d(log(L(pmkbsgf_hon,5))) + d(log(L(e_nf_hon,3))) + log(L(pmkbsgf_hon,1)) + log(L(e_nf_hon,1)) + log(L(pafsgf_hon,1)) + dum_911 + dum_011 + dum_072
+ log(pprm_haw) ~ log(L(pprm_haw,1)) + log(L(pprm_haw,5)) + trend + dum_981
+ pprm_hon ~ L(pprm_hon,1) + L(pprm_hon,3) + dum_001
+ pprm_kau ~ L(pprm_kau,1)
+ pprm_mau ~ L(pprm_mau,1)
+ log(prm_hi) ~ log(L(prm_hi,1)) + log(cpi_hon) + log(L(cpi_hon,1)) + (ocupp_hi)
+ log(prm_hon) ~ log(L(prm_hon,1)) + log(cpi_hon) + (ocupp_hon)
+ d(rmort_us) ~ d(L(rmort_us,1)) + d(rilgfcy10_us) + d(L(rilgfcy10_us,3)) + L(rmort_us,1) + L(rilgfcy10_us,1)
+ sh_jp_hon ~ L(sh_jp_hon,1)
+ sh_md_hi ~ L(sh_md_hi,1)
+ sh_res_hon ~ L(sh_res_hon,1)
+ sh_res_kau ~ L(sh_res_kau,1)
+ d(sh_us_haw) ~ d(L(sh_us_haw,1))
+ sh_us_hon ~ L(sh_us_hon,1) + d(trms_hon/trms_hi) + d(L(trms_hon,2)/L(trms_hi,2)) + d(L(trms_hon,3)/L(trms_hi,3)) + dum_001
+ d(sh_us_mau) ~ d(L(sh_us_mau,1))
+ sh_ypc_hon ~ L(sh_ypc_hon,1) + L(sh_ypc_hon,2) + L(sh_ypc_hon,3) + L(sh_ypc_hon,4)
+ d(log(tdgf_hi)) ~ d(log(L(tdgf_hi,1))) + d(log(L(tdgf_hi,4))) + d(d(log(L(cpi_hon,1)))) + d(log(L(y_r_hi,1))) + d(log(L(vexp_hi,1))) + dum_952 + dum_031 + dum_101
+ d(log(tdgfns_hi)) ~ d(log(L(e_nf_hi,1))) + log(L(tdgfns_hi,1)) + log(L(cpi_hon,1)) + log(L(e_nf_hi,1)) + dum_893 + dum_103 + dum_101 + season_2 + season_3 + season_4
+ d(log(tgbct_hi)) ~ d(log(L(tgbct_hi,1))) + d(log(L(tgbct_hi,4))) + d(log(kpprv_hi)) + d(log(L(kpprv_hi,2))) + d(log(L(kpprv_hi,3))) + d(log(L(kpprv_hi,4))) + d(log(kpgov_hi)) + d(log(L(kpgov_hi,2))) + d(log(L(kpgov_hi,5))) + log(L(tgbct_hi,1)) + log(L(kp_hi,1)) + dum_844 + dum_891 + dum_112
+ d(log(tgr_hi)) ~ d(log(L(tgr_hi,1))) + d(log(L(tgr_hi,2))) + d(log(L(tgr_hi,3))) + d(d(log(cpi_hon))) + d(d(log(L(cpi_hon,1)))) + d(d(log(L(cpi_hon,2)))) + d(d(log(L(cpi_hon,3)))) + d(log(y_r_hi)) + d(log(L(y_r_hi,1))) + d(log(L(y_r_hi,2))) + d(log(vexp_hi)) + d(log(L(vexp_hi,1))) + d(log(L(vexp_hi,2))) + d(log(L(vexp_hi,3))) + dum_952 + dum_101
+ d(log(trgtns_hi)) ~ d(log(L(trgtns_hi,1))) + d(log(L(cpi_hon,2))) + d(log(L(vis_hi,1))) + log(L(trgtns_hi,1)) + log(y_hi) + season_2 + season_3 + season_4
+ d(log(trms_haw)) ~ d(log(L(trms_haw,1))) + d(L(ocupp_haw,1)) + d(L(ocupp_haw,2)) + dumtrms11
+ trms_hi ~ trms_hon+trms_haw+trms_kau+trms_mau
+ d(log(trms_hon)) ~ d(log(L(trms_hon,2))) + (L(ocupp_hon,1)) + d(log(L(prm_hi,3))) + dumtrms11
+ d(log(trms_kau)) ~ d(log(L(trms_kau,1))) + d(log(L(vis_kau,1))) + d(log(L(vis_kau,2))) + d(log(L(vis_kau,4))) + d(log(L(vis_kau,5))) + d(L(ocupp_kau,1)) + d(L(ocupp_kau,5)) + dum_923 + dum_924 + dumtrms11
+ d(log(trms_mau)) ~ d(log(L(trms_mau,1))) + d(log(L(trms_mau,2))) + d(log(L(trms_mau,4))) + d(log(L(trms_mau,5))) + d(log(L(trms_mau,6))) + d(log(L(vis_mau,8))) + d(log(L(prm_hi,7))) + d(ocupp_mau) + dumtrms11
+ d(log(vexp_hi)) ~ d(log(L(vexp_hi,2))) + d(log(prm_hi*vadc_hi)) + d(log(L(prm_hi,1)*L(vadc_hi,1))) + d(log(L(prm_hi,2)*L(vadc_hi,2))) + log(L(vexp_hi,1)) + log(L(prm_hi,1)*L(vadc_hi,1)) + d(log(L(cpi_hon,1)))
+ log(vexp_hon/cpi_hon) ~ log(L(vexp_hon,1)/L(cpi_hon,1)) + log(vadc_hon) + log(L(vadc_hon,1)) + log(prm_hon/cpi_hon) + log(L(prm_hon,1)/L(cpi_hon,1)) + I(dum_082-dum_081) + I(dum_131-dum_121)
+ I(viscrair_hi/vis_hi) ~ I(L(viscrair_hi,1)/L(vis_hi,1)) + dum_021 + dum_051 + dum_061 + dum_071 + dum_081
+ d(log(visjp_hi)) ~ d(log(L(visjp_hi,1))) + d(log(L(visjp_hi,2))) + d(log(L(visjp_hi,3))) + d(log(L(visjp_hi,4))) + d(log(L(gdp_r_jp,1))) + log(L(visjp_hi,4)) + log(L(gdp_r_jp,4)) + log(L(prm_hi,4)) + log(L(yxr_jp,4)) + dum_032 + dum_014 + dum_083
+ d(log(visres_hi)) ~ d(log(L(visres_hi,1))) + d(log(L(gdp_r_us,1))+L(gdp_r_jp,1)/L(yxr_jp,1)) + log(L(visres_hi,1)) + log(L(gdp_r_us,1)+L(gdp_r_jp,1)/L(yxr_jp,1)) + dum_831 + dum_014
+ d(log(visus_hi)) ~ d(log(L(visus_hi,1))) + d(log(L(poil_us,1))) + d(L(ocupp_hi,2)) + d(L(ocupp_hi,4)) + log(L(visus_hi,4)) + log(L(gdp_r_us,4)) + log(L(prm_hi,4)) + dum_852 + dum_921 + dum_082
+  vloscrair_hi ~ L(vloscrair_hi,1) + dum_041 + dum_081 + dum_082 + dum_121
+ vlosjp_haw ~ L(vlosjp_haw,1)
+ vlosjp_hon ~ L(vlosjp_hon,1) + L(ocupp_hon,1)
+ vlosjp_kau ~ L(vlosjp_kau,1)
+ vlosjp_mau ~ L(vlosjp_mau,1) + vlosjp_hon + dum_032
+ vlosres_haw ~ dum_042
+ vlosres_hon ~ L(vlosres_hon,1)
+ vlosres_kau ~ dum_042
+ vlosres_mau ~ dum_042
+ vlosus_haw ~ L(vlosus_haw,3) + vlosus_hon
+ vlosus_hon ~ L(vlosus_hon,1) + L(vlosus_hon,4) + L(ocupp_hon,2)
+ vlosus_kau ~ L(vlosus_kau,2) + L(vlosus_kau,3) + L(vlosus_kau,5) + vlosus_hon
+ vlosus_mau ~ L(vlosus_mau,2) + L(vlosus_mau,4) + vlosus_hon
+ d(log(ydiv_r_hi)) ~ d(log(gdp_r_us)) + d(log(L(gdp_r_us,1))) + d(log(L(yl_r_hi,3))) + log(L(ydiv_r_hi,1)/L(gdp_r_us,1)) + L(rilgfcy10_us,1) + dum_923 + dum_924
+ d(log(ylaf_r_hi/eaf_hi)) ~ d(log(L(ylaf_r_hi,1)/L(eaf_hi,1))) + d(log(L(ylaf_r_hi,4)/L(eaf_hi,4))) + d(d(log(L(cpi_hon,3)))) + d(log(vexp_hi/cpi_hon)) + d(log(L(vexp_hi,1)/L(cpi_hon,1))) + dum_091
+ d(log(ylag_r_hi)) ~ d(log(L(ylag_r_hi,3))) + d(log(L(ylag_r_hi,7))) + dum_742 + I(dum_743-dum_742) + I(dum_781-dum_774) + dum_994
+ d(log(ylag_r_nbi)) ~ d(log(ylag_r_hi))
+ d(log(ylgvfd_r_hi)) ~ d(log(L(ylgvfd_r_hi,4))) + d(log(egvfd_hi)) + dum_971
+ d(log(ylgvml_r_hi)) ~ d(log(L(ylgvml_r_hi,1))) + d(log(L(nrm_hi,1))) + d(d(log(L(cpi_hon,4)))) + dum_812 + dum_721
+ d(log(ylhc_r_hi)) ~ d(log(ehc_hi)) + d(log(L(ehc_hi,1))) + d(log(L(ehc_hi,2))) + d(log(L(ehc_hi,4))) + d(log(L(yl_r_hi,4))) + log(L(ylhc_r_hi,1)) + log(L(ehc_hi,1)) + dum_981 + dum_001 + dum_011 + dum_062
+ d(log(ylmn_r_hi/emn_hi)) ~ d(log(L(ylmn_r_hi,1)/L(emn_hi,1))) + d(log(L(ylmn_r_hi,2)/L(emn_hi,2))) + d(log(L(yl_r_hi,4)/L(nrcnm_hi,4))) + d(log(L(cpi_hon,1))) + log(L(ylmn_r_hi,1)/L(emn_hi,1)) + log(L(yl_r_hi,1)/L(nrcnm_hi,1))
+ d(log(yl_ctmi_r_hi)) ~ d(log(L(yl_ctmi_r_hi,1))) + d(log(L(yl_ctmi_r_hi,2))) + d(log(ect_hi)) + log(L(yl_ctmi_r_hi,1)) + log(L(ect_hi,1)) + trend + dum_864
+ d(log(yl_else_r_hi/e_else_hi)) ~ d(log(L(yl_else_r_hi,1)/L(e_else_hi,1))) + d(log(L(yl_else_r_hi,2)/L(e_else_hi,2))) + d(log(L(yl_else_r_hi,3)/L(e_else_hi,3))) + d(d(log(L(cpi_hon,2)))) + d(log(vexp_hi/cpi_hon))
+ d(log(yl_fir_r_hi/e_fir_hi)) ~ d(log(L(yl_fir_r_hi,1)/L(e_fir_hi,1))) + log(L(yl_fir_r_hi,1)) + log(L(e_fir_hi,1)) + log(L(y_r_hi,1)/L(nr_hi,1)) + dum_911 + dum_924 + dum_941 + dum_021
+ d(log(yl_gvsl_r_hi)) ~ d(log(L(yl_gvsl_r_hi,3))) + d(log(L(yl_gvsl_r_hi,4))) + d(log(L(e_gvsl_hi,2))) + d(log(L(e_gvsl_hi,3))) + d(log(L(e_gvsl_hi,5))) + log(L(yl_gvsl_r_hi,1)) + log(L(e_gvsl_hi,1)) + dum_794 + dum_801 + dum_833 + dum_993 + dum_994
+ d(log(yl_trade_r_hi)) ~ d(log(L(yl_trade_r_hi,1))) + d(log(L(yl_trade_r_hi,3))) + d(log(L(yl_trade_r_hi,4))) + d(e_trade_hi) + d(L(e_trade_hi,3)) + d(log(L(vis_hi,1))) + d(d(log(L(cpi_hon,1))))
+ d(log(yl_tu_r_hi/e_tu_hi)) ~ d(log(L(yl_tu_r_hi,1)/L(e_tu_hi,1))) + d(log(L(yl_tu_r_hi,5)/L(e_tu_hi,5))) + d(d(log(cpi_hon))) + d(log(L(vexp_hi,4)/L(cpi_hon,4))) + dum_091
+ d(log(ymedc_hon)) ~ d(log(L(ymedc_hon,1))) + d(log(L(ymedc_hon,4))) + d(log(L(ymedc_hon,5))) + d(log(sh_ypc_hon*y_hi/nr_hi)) + d(log(L(sh_ypc_hon,1)*L(y_hi,1)/L(nr_hi,1))) + d(log(L(sh_ypc_hon,3)*L(y_hi,3)/L(nr_hi,3))) + d(log(L(sh_ypc_hon,5)*L(y_hi,5)/L(nr_hi,5))) + I(dum_082-dum_081) + I(dum_131-dum_121)
+ log(ypjag_r_hi) ~ log(L(ypjag_r_hi,1)) + log(L(ypjag_r_hi,4)) + dum_031 + dum_034
+ ypjag_r_hon ~ I(ylag_r_hon/eag_hon)
+ d(log(ypjag_r_nbi)) ~ d(log(L(ypjag_r_nbi,1))) + d(log(L(ypjag_r_nbi,2))) + d(log(L(ypjag_r_nbi,3))) + d(log(L(ypjag_r_nbi,4))) + dum_031
+ d(log(ys_hi/yl_hi)) ~ d(log(L(ys_hi,1)/L(yl_hi,1))) + d(log(kp_hi)) + dum_931 + I(dum_771-dum_761)
+ ysocsec_hi ~ yl_hi
+ d(log(ytrnsf_r_hi/nr_hi)) ~ d(log(L(ytrnsf_r_hi,1)/L(nr_hi,1))) + ur_hi + I(dum_923-dum_924)

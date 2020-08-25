@@ -1,0 +1,17 @@
+FRML _i dlog(cpi_hon) = 0.0576299*dlog(pcen_hon) +0.00176706*(dlog(pcen_hon[-2])) +0.199604*dlog(pcfbfd_hon) +0.117513*(dlog(pcfbfd_hon[-4])) +0.369251*dlog(pchssh_hon) -0.0216370*(log(cpi_hon[-1])) +0.000924653*(log(pcen_hon[-1])) +0.0171198*(log(pchssh_hon[-1])) -0.00397456*dum_983 -0.0000110300*trend +0.0201007;
+FRML _i dlog(eaf_hi) = 0.0635193*dlog(vis_hi) +0.0483825*(dlog(vis_hi[-1])) -0.0668608*(log(eaf_hi[-1])) +0.0553782*(log(vis_hi[-1])) -0.0364103*dum_014 -0.108497;
+FRML _i dlog(eaf_hon) = 0.0617817*(dlog(eaf_hon[-2])) +0.0570511*dlog(vis_hi) +0.0501754*(dlog(vis_hi[-1])) -0.0760848*(log(eaf_hon[-1])) +0.0562446*(log(vis_hi[-1])) -0.0381308*dum_014 -0.112753;
+FRML _i eag_hi = 1.000000*ylag_r_hi/ypjag_r_hi +0.00000140312;
+FRML _i eag_hon = 1.000000*(eag_hi-eag_nbi) +0.000000344619;
+FRML _i eag_nbi = 0.904748*ylag_r_nbi/ypjag_r_nbi +0.598499;
+FRML _i dlog(ect_hi) = 0.305869*(dlog(ect_hi[-1])) +0.166768*(dlog(ect_hi[-5])) -0.0185647*(dlog(kp_r_hi[-1])) -0.0923819*(log(ect_hi[-1]/nr_hi[-1])) +0.0428608*(log(kp_r_hi[-1])) -0.00506119*dum_854 -0.128394*dum_844 -0.604180;
+FRML _i dlog(ect_hi) = 0.333650*(dlog(ect_hi[-1])) +0.204157*(dlog(ect_hi[-5])) -0.0141781*(dlog(kp_r_hi[-1])) -0.0794608*(log(ect_hi[-1]/nr_hi[-1])) +0.0379644*(log(kp_r_hi[-1])) +0.0608398*(dum_854-dum_844) -0.527153;
+FRML _i dlog(ect_hon) = 0.0745784*(dlog(ect_hon[-2])) +0.513676*(dlog(ect_hi[-1])) -0.0625952*(log(ect_hon[-1])) +0.0470053*(log(ect_hi[-1])) +0.109254*dum_781 -0.0854101*dum_843 -0.0888436*dum_844 +0.222887*dum_851 +0.0339656;
+FRML _i dlog(egvfd_hi) = 0.0920580*(dlog(egvfd_hi[-5])) -0.0669648*(dlog(y_r_hi[-4])) -0.0487202*(log(egvfd_hi[-1])) -0.00483101*(log(nrm_hi[-1])) +0.0157958*(log(y_r_hi[-1])) +0.0389547*dum_002 +0.0296876;
+FRML _i dlog(egvfd_hon) = -0.0111192*(dlog(egvfd_hon[-1])) +0.985226*dlog(egvfd_hi) -0.0288232*(dlog(egvfd_hi[-1])) -0.00496525*dum_931 +0.00105484*dum_002 +0.00133666*dum_003 -0.000281256;
+FRML _i dlog(ehc_hi) = 0.326490*(dlog(e_hi[-1])) -0.00238121*(log(ehc_hi[-1])) -0.0171932*(log(nrcnm_hi[-1])) -0.0640755*dum_743 +0.0586468*dum_744 +0.135955;
+FRML _i dlog(ehc_nbi) = 0.0917790*(dlog(ehc_nbi[-1])) +0.209166*(dlog(ehc_nbi[-4])) -0.131362*(dlog(ehc_nbi[-5])) +0.207294*(dlog(e_nbi[-2])) -0.0788098*(log(ehc_nbi[-1])) +0.154608*(log(nr_nbi[-1])) -0.709694;
+FRML _i dlog(emn_hi/nr_hi) = 0.0363285*(dlog(emn_hi[-2]/nr_hi[-2])) +0.232713*dlog(eag_hi/nr_hi) +0.0575620*(dlog(ect_hi[-1])) -0.0389739*dum_931 -0.00466996;
+FRML _i dlog(emn_nbi/nr_nbi) = 0.153704*(dlog(emn_nbi[-2]/nr_nbi[-2])) +0.295018*dlog(eag_nbi/nr_nbi) +0.0430227*(dlog(ect_nbi[-1])) -0.117810*dum_931 -0.00666775;
+FRML _i dlog(e_else_hi) = 0.0405353*(dlog(e_else_hi[-2])) -0.0306951*(log(e_else_hi[-1]/y_r_hi[-1])) -0.00511358*(log(nr_hi[-1])) -0.0346798*dum_851 -0.0358874*dum_901 -0.118798;
+FRML _i dlog(yl_tu_r_hi/e_tu_hi) = -0.247430*(dlog(yl_tu_r_hi[-1]/e_tu_hi[-1])) +0.102726*(dlog(yl_tu_r_hi[-5]/e_tu_hi[-5])) -0.381926*diff(dlog(cpi_hon)) -0.00519430*(dlog(vexp_hi[-4]/cpi_hon[-4])) -0.0295568*dum_091 +0.000122004;
